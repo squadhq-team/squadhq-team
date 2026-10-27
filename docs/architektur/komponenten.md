@@ -4,6 +4,38 @@
 >
 > **Legende:** Kasten = Komponente, Zylinder = Datenbank, gruppierender Rahmen = Knoten bzw. Schicht, Pfeil = Konnektor (Aufruf in Pfeilrichtung), Pfeilbeschriftung = genutzte Schnittstelle bzw. Protokoll.
 
+## Übersicht
+
+```mermaid
+flowchart LR
+  B["Browser<br/>(Smartphone)"]
+
+  subgraph Server["Next.js-Server (Vercel)"]
+    P["Präsentation<br/>Seiten: Spieler,<br/>Trainer, Anmeldung"]
+    A["Server Actions"]
+    AUTH["Auth<br/>Rollenprüfung"]
+    S["Service-Schicht<br/>AttendanceService<br/>PenaltyEngine<br/>AuditService"]
+    DOM["Fachlogik<br/>Strafregeln, Saldo"]
+    ORM["Prisma ORM"]
+  end
+
+  DB[("PostgreSQL<br/>(Supabase)")]
+
+  B -- "Seite laden" --> P
+  B -- "Formular senden" --> A
+  P -- "Rolle prüfen" --> AUTH
+  A -- "Rolle prüfen" --> AUTH
+  P -- "Daten lesen" --> S
+  A -- "Daten ändern" --> S
+  S -- "Regeln anwenden" --> DOM
+  S -- "Datenzugriff" --> ORM
+  ORM -- "SQL" --> DB
+```
+
+## Detailansicht
+
+Dieselbe Struktur mit allen Konnektoren und den genutzten Schnittstellen (Funktionsnamen).
+
 ```mermaid
 flowchart TB
   B["Browser (Smartphone, mobile-first)<br/>zeigt HTML, sendet Formulare"]
