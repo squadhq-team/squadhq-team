@@ -1,6 +1,6 @@
 # Traceability: Feedback → Anforderung → Realisierung → Test
 
-> Stand P3 (28.10.2026). Pre-Traceability (Quelle der Anforderung) siehe [Feedback-Matrix](interviews/feedback-matrix.md). Akzeptanzkriterien AK1–AK3 siehe [Akzeptanzkriterien](testing/akzeptanzkriterien.md), Architekturentscheidung siehe [Architekturbegründung](architektur/architekturbegruendung.md).
+> Stand P3 (28.10.2026). Pre-Traceability (Quelle der Anforderung) siehe [Feedback-Matrix](interviews/feedback-matrix.md). Akzeptanzkriterien AK1–AK3 siehe [Akzeptanzkriterien](testing/akzeptanzkriterien.md), Architekturentscheidung siehe [Architekturbegründung](architektur/architekturbegruendung.md). Umsetzungsstand der Aufgaben siehe [Sprint-Board](https://github.com/users/Kirillv2/projects/1).
 
 | REQ | Quelle (Feedback) | Komponente / Klasse | Entwurf | Dateien | Test | Stand P3 |
 | --- | --- | --- | --- | --- | --- | --- |

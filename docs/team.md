@@ -9,7 +9,7 @@
 
 ## Vorgehen
 - Scrum mit Sprints im Zwei-Wochen-Takt, passend zu den Präsentationen
-- Aufgaben als GitHub Issues im Sprint-Board (Backlog, Todo, In Progress, Done)
+- Aufgaben als GitHub Issues im [Sprint-Board](https://github.com/users/Kirillv2/projects/1) (Backlog, Todo, In Progress, Done)
 - Priorisierung nach MoSCoW
 
 ## Meilensteine

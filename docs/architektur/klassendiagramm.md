@@ -2,6 +2,32 @@
 
 > Entwurf für P3. Next.js-Services sind als Module mit Funktionen umgesetzt; im Diagramm als Klassen mit statischen Operationen (`<<service>>`) dargestellt. Entitäten entsprechen den Prisma-Modellen in `prisma/schema.prisma`; Fremdschlüssel (z. B. `playerId`) sind als Assoziationen gezeichnet, nicht als Attribute. `?` = optional (darf leer sein).
 
+## Übersicht
+
+```mermaid
+classDiagram
+  direction LR
+  class User
+  class TrainingSession
+  class Attendance
+  class PenaltyRule
+  class PenaltyEntry
+  class AuditLog
+
+  User "1" -- "0..*" Attendance : meldet
+  TrainingSession "1" *-- "0..*" Attendance : hat
+  User "1" -- "0..*" PenaltyEntry : schuldet
+  PenaltyRule "1" -- "0..*" PenaltyEntry : Grundlage
+  TrainingSession "0..1" -- "0..*" PenaltyEntry : Anlass
+  PenaltyEntry "1" *-- "1..*" AuditLog : Verlauf
+```
+
+Die Übersicht zeigt nur die Fachklassen und ihre Beziehungen; die Services stehen in der Detailansicht und im [Komponentendiagramm](komponenten.md).
+
+## Detailansicht
+
+Alle Attribute, Operationen, Aufzählungstypen und Beziehungen.
+
 ```mermaid
 classDiagram
   direction LR

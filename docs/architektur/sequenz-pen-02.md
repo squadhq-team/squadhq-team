@@ -2,6 +2,30 @@
 
 > Entwurf für P3. Zeigt den Kernablauf der Demo: unentschuldigtes Fehlen → Strafvorschlag → Freigabe → Saldo.
 
+## Übersicht
+
+```mermaid
+sequenceDiagram
+  actor T as Trainer
+  participant App as SquadHQ (Server)
+  participant DB as Datenbank
+  actor S as Spieler
+
+  T->>App: markiert Spieler als "Unentschuldigt"
+  App->>DB: Anwesenheit speichern
+  App->>DB: Strafvorschlag 20 € anlegen (wartet auf Freigabe)
+  App-->>T: Vorschlag wird angezeigt
+  T->>App: gibt Strafe frei
+  App->>DB: Strafe offen, fällig in 7 Tagen, im Protokoll vermerkt
+  S->>App: öffnet sein Kassenkonto
+  App->>DB: offene Strafen lesen
+  App-->>S: Saldo 20,00 €
+```
+
+## Detailansicht
+
+Derselbe Ablauf mit allen Komponenten und Funktionsaufrufen, inklusive „Verwerfen“ und späterer Stornierung.
+
 ```mermaid
 sequenceDiagram
   autonumber
@@ -73,6 +97,24 @@ sequenceDiagram
 ```
 
 ## Zustandsautomat einer Strafe
+
+### Übersicht
+
+```mermaid
+stateDiagram-v2
+  state "PAID_CASH / PAID_PAYPAL" as PAID
+  [*] --> PENDING_APPROVAL: Trainer setzt UNEXCUSED
+  PENDING_APPROVAL --> OPEN: Trainer gibt frei
+  OPEN --> PARTIAL: Teilzahlung
+  OPEN --> PAID: bezahlt
+  PARTIAL --> PAID: Rest bezahlt
+  PENDING_APPROVAL --> CANCELLED: verworfen
+  OPEN --> CANCELLED: storniert
+  PAID --> [*]
+  CANCELLED --> [*]
+```
+
+### Detailansicht
 
 ```mermaid
 stateDiagram-v2
