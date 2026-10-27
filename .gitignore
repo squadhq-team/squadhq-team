@@ -1,4 +1,4 @@
-# Logs
+﻿# Logs
 logs
 *.log
 npm-debug.log*
@@ -148,7 +148,9 @@ vite.config.ts.timestamp-*
 # Turbo Repo
 .turbo
 
-# Beispiel-Umgebung darf ins Repo
-!.env.example
+# Vercel CLI
 .vercel
 .env*
+
+# Beispiel-Umgebung darf ins Repo
+!.env.example
