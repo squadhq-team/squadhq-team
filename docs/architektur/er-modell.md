@@ -1,6 +1,6 @@
 # Datenmodell: ER-Diagramm
 
-> Stand P3, entspricht exakt `prisma/schema.prisma`. PK = Primärschlüssel, FK = Fremdschlüssel, UK = eindeutig.
+> Stand P3, entspricht exakt `prisma/schema.prisma`. PK = Primärschlüssel, FK = Fremdschlüssel, UK = eindeutig, „optional“ = darf leer sein (`?` im Schema).
 
 ```mermaid
 erDiagram
@@ -11,14 +11,14 @@ erDiagram
   USER ||--o{ PENALTY_ENTRY : "legt an"
   PENALTY_RULE ||--o{ PENALTY_ENTRY : "Grundlage"
   TRAINING_SESSION |o--o{ PENALTY_ENTRY : "Anlass"
-  PENALTY_ENTRY ||--|{ AUDIT_LOG : "Verlauf"
+  PENALTY_ENTRY ||--o{ AUDIT_LOG : "Verlauf"
   USER ||--o{ AUDIT_LOG : "Akteur"
 
   USER {
     string id PK
     string name
     enum role "TRAINER | CASHIER | PLAYER"
-    string phone
+    string phone "optional"
     datetime createdAt
   }
   TRAINING_SESSION {
@@ -26,20 +26,21 @@ erDiagram
     string title
     datetime startsAt
     datetime responseDeadline
-    string location
+    string location "optional"
     string createdById FK
+    datetime createdAt
   }
   ATTENDANCE {
     string id PK
-    string sessionId FK "UK mit userId"
-    string userId FK
+    string sessionId FK "UK zusammen mit userId"
+    string userId FK "UK zusammen mit sessionId"
     enum status "ATTENDING | EXCUSED | UNSURE | UNEXCUSED"
-    string note
+    string note "optional"
     datetime updatedAt
   }
   PENALTY_RULE {
     string id PK
-    int position UK "TSVK-Position, z. B. 8"
+    int position UK "optional, TSVK-Position, z. B. 8"
     string title
     int amountCents
     enum trigger "UNEXCUSED_ABSENCE | LATE | MANUAL"
@@ -53,17 +54,20 @@ erDiagram
     int amountCents
     int paidCents
     enum status "PENDING_APPROVAL | OPEN | PARTIAL | PAID_CASH | PAID_PAYPAL | CANCELLED"
-    enum method "CASH | PAYPAL"
-    datetime dueDate
+    enum method "optional: CASH | PAYPAL"
+    datetime dueDate "optional"
     string createdById FK
+    datetime createdAt
+    datetime updatedAt
   }
   AUDIT_LOG {
     string id PK
     string entryId FK
     string actorId FK
     string action "VORGESCHLAGEN | FREIGEGEBEN | VERWORFEN | STORNIERT"
-    enum oldStatus
-    enum newStatus
+    enum oldStatus "optional, PenaltyStatus"
+    enum newStatus "PenaltyStatus"
+    string note "optional"
     datetime createdAt
   }
 ```
