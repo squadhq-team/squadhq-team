@@ -31,6 +31,8 @@ npm run dev
 3. **Deploy** klicken. Der Build führt `prisma generate` automatisch aus.
 4. Demo-Daten zurücksetzen geht lokal mit `npm run db:reset`, solange `.env` auf die Supabase-DB zeigt.
 
+Aktuelles Deployment: https://squadhq-omega.vercel.app (Vercel-Projekt `squadhq`, Region `arn1` neben der Supabase-DB in Stockholm, siehe `vercel.json`). Auf Vercel hängt an `DATABASE_URL` zusätzlich `&connection_limit=1`, damit die Serverless-Funktionen den Pooler nicht überlasten. Das Projekt ist noch nicht mit GitHub verbunden, neue Versionen also mit `npx vercel deploy --prod` veröffentlichen.
+
 ## Tests
 ```bash
 npm test                                  # Unit-Tests

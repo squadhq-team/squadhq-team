@@ -4,6 +4,8 @@ Web-App für Amateurteams: Trainingszusagen, Strafenkatalog und Teamkasse an ein
 
 Software-Projekt WS 2026/27, Hochschule Flensburg
 
+**Live-Demo:** https://squadhq-omega.vercel.app
+
 ## Team
 | Name | Rolle |
 |---|---|
