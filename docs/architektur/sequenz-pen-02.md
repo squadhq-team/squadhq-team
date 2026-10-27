@@ -19,7 +19,7 @@ sequenceDiagram
   A->>A: assertRole(TRAINER)
   A->>AS: setByTrainer(...)
   activate AS
-  AS->>DB: BEGIN; upsert Attendance(status=UNEXCUSED)
+  AS->>DB: BEGIN, upsert Attendance(status=UNEXCUSED)
   AS->>PE: syncPenaltyForAttendance(tx, ...)
   PE->>DB: Regel mit trigger=UNEXCUSED_ABSENCE (TSVK Pos. 8, 20 €)
   PE->>DB: gibt es schon einen offenen Eintrag?
