@@ -1,0 +1,142 @@
+// Datenmodell SquadHQ (Stand P3)
+// Quelle der Status-Werte: Feedback-Matrix (docs/interviews/feedback-matrix.md)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+/// REQ-SEC-01: drei Rollen mit unterschiedlichen Rechten
+enum Role {
+  TRAINER
+  CASHIER
+  PLAYER
+}
+
+/// REQ-ATT-01: 1-Klick-Rückmeldung; UNEXCUSED setzt nur der Trainer
+enum AttendanceStatus {
+  ATTENDING
+  EXCUSED
+  UNSURE
+  UNEXCUSED
+}
+
+/// REQ-PEN-02/03: Lebenszyklus einer Strafe
+/// PENDING_APPROVAL = Vorschlag der PenaltyEngine, wartet auf Trainer-Freigabe
+enum PenaltyStatus {
+  PENDING_APPROVAL
+  OPEN
+  PARTIAL
+  PAID_CASH
+  PAID_PAYPAL
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  PAYPAL
+}
+
+enum PenaltyTrigger {
+  UNEXCUSED_ABSENCE
+  LATE
+  MANUAL
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  role      Role
+  phone     String?
+  createdAt DateTime @default(now())
+
+  attendances      Attendance[]
+  penalties        PenaltyEntry[] @relation("PenaltyPlayer")
+  createdPenalties PenaltyEntry[] @relation("PenaltyCreator")
+  auditEntries     AuditLog[]
+  createdSessions  TrainingSession[]
+}
+
+model TrainingSession {
+  id               String   @id @default(cuid())
+  title            String
+  startsAt         DateTime
+  responseDeadline DateTime
+  location         String?
+  createdById      String
+  createdAt        DateTime @default(now())
+
+  createdBy   User           @relation(fields: [createdById], references: [id])
+  attendances Attendance[]
+  penalties   PenaltyEntry[]
+}
+
+model Attendance {
+  id        String           @id @default(cuid())
+  sessionId String
+  userId    String
+  status    AttendanceStatus
+  /// optionaler Grund, ohne Rechtfertigungsdruck (Feedback Spieler)
+  note      String?
+  updatedAt DateTime         @updatedAt
+
+  session TrainingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [userId], references: [id])
+
+  @@unique([sessionId, userId])
+}
+
+/// REQ-PEN-01: Position aus dem TSVK-Strafenkatalog 2026/27
+model PenaltyRule {
+  id          String          @id @default(cuid())
+  /// Positionsnummer im Katalog; null, solange die Position noch nicht zugeordnet ist
+  position    Int?            @unique
+  title       String
+  amountCents Int
+  trigger     PenaltyTrigger
+  active      Boolean         @default(true)
+
+  entries PenaltyEntry[]
+}
+
+model PenaltyEntry {
+  id          String        @id @default(cuid())
+  playerId    String
+  ruleId      String
+  sessionId   String?
+  amountCents Int
+  paidCents   Int           @default(0)
+  status      PenaltyStatus
+  method      PaymentMethod?
+  dueDate     DateTime?
+  createdById String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  player    User             @relation("PenaltyPlayer", fields: [playerId], references: [id])
+  rule      PenaltyRule      @relation(fields: [ruleId], references: [id])
+  session   TrainingSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  createdBy User             @relation("PenaltyCreator", fields: [createdById], references: [id])
+  auditLog  AuditLog[]
+}
+
+/// Feedback Kassenwart: wer hat wann was eingetragen, geändert oder storniert
+/// Einträge werden nur angelegt, nie geändert oder gelöscht
+model AuditLog {
+  id        String         @id @default(cuid())
+  entryId   String
+  actorId   String
+  action    String
+  oldStatus PenaltyStatus?
+  newStatus PenaltyStatus
+  note      String?
+  createdAt DateTime       @default(now())
+
+  entry PenaltyEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  actor User         @relation(fields: [actorId], references: [id])
+}
