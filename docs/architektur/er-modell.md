@@ -2,6 +2,23 @@
 
 > Stand P3, entspricht exakt `prisma/schema.prisma`. PK = Primärschlüssel, FK = Fremdschlüssel, UK = eindeutig, „optional“ = darf leer sein (`?` im Schema).
 
+## Übersicht
+
+```mermaid
+erDiagram
+  USER ||--o{ ATTENDANCE : "meldet"
+  TRAINING_SESSION ||--o{ ATTENDANCE : "hat"
+  USER ||--o{ TRAINING_SESSION : "erstellt"
+  USER ||--o{ PENALTY_ENTRY : "schuldet"
+  PENALTY_RULE ||--o{ PENALTY_ENTRY : "Grundlage"
+  TRAINING_SESSION |o--o{ PENALTY_ENTRY : "Anlass"
+  PENALTY_ENTRY ||--o{ AUDIT_LOG : "Verlauf"
+```
+
+## Detailansicht
+
+Alle Tabellen mit Spalten, Schlüsseln und Beziehungen.
+
 ```mermaid
 erDiagram
   USER ||--o{ ATTENDANCE : "meldet"
