@@ -12,6 +12,7 @@ sequenceDiagram
   participant PE as PenaltyEngine
   participant AU as AuditService
   participant DB as PostgreSQL
+  participant SP as Spieler-Ansicht
   actor S as Spieler
 
   T->>UI: Klick "Unentschuldigt" bei Spieler X
@@ -32,22 +33,42 @@ sequenceDiagram
   deactivate AS
   A-->>UI: revalidate → Vorschlag erscheint
 
-  T->>UI: Klick "Freigeben"
-  UI->>A: approveAction(entryId)
-  A->>PE: approvePenalty(entryId, trainerId)
-  PE->>DB: update status=OPEN, dueDate=+7 Tage
-  PE->>AU: logPenaltyChange(FREIGEGEBEN)
-  A-->>UI: Vorschlag verschwindet
+  alt Trainer gibt frei
+    T->>UI: Klick "Freigeben"
+    UI->>A: approveAction(entryId)
+    A->>A: assertRole(TRAINER)
+    A->>PE: approvePenalty(entryId, trainerId)
+    PE->>DB: update status=OPEN, dueDate=+7 Tage
+    PE->>AU: logPenaltyChange(FREIGEGEBEN)
+    AU->>DB: insert AuditLog
+    A-->>UI: Vorschlag verschwindet
+  else Trainer verwirft
+    T->>UI: Klick "Verwerfen"
+    UI->>A: discardAction(entryId)
+    A->>A: assertRole(TRAINER)
+    A->>PE: discardPenalty(entryId, trainerId)
+    PE->>DB: update status=CANCELLED
+    PE->>AU: logPenaltyChange(VERWORFEN)
+    AU->>DB: insert AuditLog
+    A-->>UI: Vorschlag verschwindet
+  end
 
-  S->>DB: öffnet /spieler (Kassenkonto)
-  DB-->>S: Saldo +20,00 €, Status "Offen"
+  S->>SP: öffnet /spieler (Kassenkonto)
+  SP->>PE: listPenaltiesForPlayer(playerId)
+  PE->>DB: select PenaltyEntry des Spielers
+  DB-->>PE: Einträge
+  PE-->>SP: Einträge
+  SP->>SP: balance(entries) zählt nur OPEN und PARTIAL
+  SP-->>S: nach Freigabe Saldo 20,00 €, Status "Offen"
 
-  opt später: Trainer ändert Status auf EXCUSED
-    T->>A: setAttendanceAction(EXCUSED)
+  opt später: Trainer setzt EXCUSED (Strafe bereits freigegeben)
+    T->>UI: Klick "Entschuldigt"
+    UI->>A: setAttendanceAction(EXCUSED)
     A->>AS: setByTrainer(...)
     AS->>PE: syncPenaltyForAttendance(tx, ...)
     PE->>DB: update status=CANCELLED
-    PE->>AU: logPenaltyChange(STORNIERT bzw. VERWORFEN)
+    PE->>AU: logPenaltyChange(STORNIERT)
+    AU->>DB: insert AuditLog
   end
 ```
 
@@ -55,17 +76,20 @@ sequenceDiagram
 
 ```mermaid
 stateDiagram-v2
-  [*] --> PENDING_APPROVAL: UNEXCUSED gesetzt
+  [*] --> PENDING_APPROVAL: Trainer setzt UNEXCUSED
   PENDING_APPROVAL --> OPEN: Trainer gibt frei
-  PENDING_APPROVAL --> CANCELLED: verworfen / Status geändert
+  PENDING_APPROVAL --> CANCELLED: Trainer verwirft / Status nicht mehr UNEXCUSED
   OPEN --> PARTIAL: Teilzahlung (P4)
   OPEN --> PAID_CASH: bar bezahlt (P4)
   OPEN --> PAID_PAYPAL: PayPal (P4)
-  PARTIAL --> PAID_CASH
-  PARTIAL --> PAID_PAYPAL
-  OPEN --> CANCELLED: Status nachträglich EXCUSED
-  PARTIAL --> CANCELLED
+  PARTIAL --> PARTIAL: weitere Teilzahlung (P4)
+  PARTIAL --> PAID_CASH: Rest bar bezahlt (P4)
+  PARTIAL --> PAID_PAYPAL: Rest per PayPal (P4)
+  OPEN --> CANCELLED: Status nachträglich nicht mehr UNEXCUSED
+  PARTIAL --> CANCELLED: Status nachträglich nicht mehr UNEXCUSED
   PAID_CASH --> [*]
   PAID_PAYPAL --> [*]
   CANCELLED --> [*]
 ```
+
+Im Saldo zählen nur `OPEN` und `PARTIAL` (Funktion `isOutstanding` in `src/domain/penalties.ts`). Jeder Zustandswechsel wird im `AuditLog` protokolliert. Übergänge mit „(P4)“ sind modelliert, aber erst zu P4 umgesetzt.
