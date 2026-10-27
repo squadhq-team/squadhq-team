@@ -150,3 +150,5 @@ vite.config.ts.timestamp-*
 
 # Beispiel-Umgebung darf ins Repo
 !.env.example
+.vercel
+.env*
