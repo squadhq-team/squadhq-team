@@ -41,5 +41,5 @@ Details, Supabase und Vercel: [docs/setup.md](docs/setup.md). Ablauf für die Pr
 - `docs/testing` – Akzeptanzkriterien und Teststrategie
 - `docs/team.md` – Rollen und Arbeitsweise
 
-## Projekt-Tracking
-GitHub Projects: SquadHQ Sprint-Board
+## Projekt-Board
+Aufgaben, Sprints und Fortschritt: [SquadHQ Sprint-Board (GitHub Projects)](https://github.com/users/Kirillv2/projects/1)
