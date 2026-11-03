@@ -94,7 +94,7 @@ model Attendance {
 /// REQ-PEN-01: Position aus dem TSVK-Strafenkatalog 2026/27
 model PenaltyRule {
   id          String          @id @default(cuid())
-  /// Positionsnummer im Katalog; null, solange die Position noch nicht zugeordnet ist
+  /// Positionsnummer im Katalog; null bei Unterpositionen (z. B. 13A, steht im Titel) und Zusatzregeln wie dem Zahlungsverzug
   position    Int?            @unique
   title       String
   amountCents Int

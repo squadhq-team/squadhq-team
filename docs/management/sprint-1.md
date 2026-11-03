@@ -21,5 +21,6 @@
 
 ## Nächster Sprint (bis P4, 11.11.)
 - REQ-SEC-01, REQ-ATT-01/02 und REQ-PEN-03 vervollständigen
+- Neu seit den finalen MVPs (03.11.): REQ-PEN-04 Zahlungsverfolgung durch den Kassenwart, REQ-AUD-01 Audit-Log vervollständigen
 - Coding-Standards festlegen
 - Feedback-Sitzung mit TSV Kronshagen zum Prototyp

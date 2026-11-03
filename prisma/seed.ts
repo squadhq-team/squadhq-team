@@ -1,10 +1,11 @@
 /**
  * Demo-Daten für den Prototyp (P3).
- * Strafenkatalog: Pos. 8 (20 € unentschuldigtes Fehlen) und die Mahngebühr (5 € pro Woche) stammen aus dem
- * TSVK-Strafenkatalog 2026/27. Die Verspätungsstaffeln sind Platzhalter und müssen mit dem Katalog abgeglichen werden.
+ * Strafenkatalog: vollständiger TSVK-Strafenkatalog 2026/27 aus prisma/strafenkatalog.ts
+ * (Quelle: docs/anforderungen/strafenkatalog-tsvk-2026-27.md).
  * Personen sind erfunden.
  */
 import { PrismaClient } from "@prisma/client";
+import { STRAFENKATALOG } from "./strafenkatalog";
 
 const prisma = new PrismaClient();
 
@@ -34,16 +35,8 @@ async function main() {
   }
   const [ben, can, finn, leon, luca, noah, paul, tim] = players;
 
-  const absence = await prisma.penaltyRule.create({
-    data: { position: 8, title: "Unentschuldigtes Fehlen beim Training", amountCents: 2000, trigger: "UNEXCUSED_ABSENCE" },
-  });
-  await prisma.penaltyRule.createMany({
-    data: [
-      { title: "Verspätung Training bis 15 Minuten (Platzhalter)", amountCents: 200, trigger: "LATE" },
-      { title: "Verspätung Training über 15 Minuten (Platzhalter)", amountCents: 500, trigger: "LATE" },
-      { title: "Mahngebühr je angefangene Woche Zahlungsverzug", amountCents: 500, trigger: "MANUAL" },
-    ],
-  });
+  await prisma.penaltyRule.createMany({ data: STRAFENKATALOG });
+  const absence = await prisma.penaltyRule.findUniqueOrThrow({ where: { position: 8 } });
 
   // Vergangenes Training: bereits abgeschlossen, eine Strafe offen, eine bezahlt
   const lastWeek = await prisma.trainingSession.create({
@@ -106,7 +99,7 @@ async function main() {
     ],
   });
 
-  console.log(`Seed fertig: ${players.length} Spieler, 1 Trainer, 4 Trainings, 4 Katalogregeln.`);
+  console.log(`Seed fertig: ${players.length} Spieler, 1 Trainer, 4 Trainings, ${STRAFENKATALOG.length} Katalogregeln.`);
 }
 
 main()
