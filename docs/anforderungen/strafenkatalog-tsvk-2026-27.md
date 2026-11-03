@@ -40,7 +40,7 @@
 | Pos. 13A–C | `trigger = LATE`, `position = null`, Unterposition im Titel | `position` ist eindeutig, daher stehen die Unterpositionen 5A/5B und 13A–C im Titel |
 | Pos. 1, 2 (Kasten) | `amountCents = 0`, `active = false` | Sachstrafe ohne Geldbetrag, zählt nicht im Saldo; wie in P2 festgelegt erst in Phase 2 |
 | Pos. 3–7, 10–12 | `trigger = MANUAL` | werden vom Trainer oder Kassenwart manuell eingetragen |
-| Verzug 5 €/Woche | eigene Regel ohne Position, `trigger = MANUAL` | Fälligkeit 7 Tage ist bereits umgesetzt (`DUE_DAYS` in `src/domain/penalties.ts`), automatische Erhöhung noch nicht |
+| Verzug 5 €/Woche | eigene Regel ohne Position, `trigger = MANUAL` | Fälligkeit 7 Tage ab Freigabe durch den Trainer ist umgesetzt (`DUE_DAYS` in `src/domain/penalties.ts`); P4: Kassenwart-Ansicht markiert überfällige Strafen; automatische Erhöhung danach |
 
 ## Offene Punkte für die Klärung mit dem Team
 

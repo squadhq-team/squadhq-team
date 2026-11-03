@@ -22,8 +22,8 @@
 | MVP-2 Trainer-Dashboard & Anwesenheitsliste | Anwesenheitsliste mit Bestätigung | Fehlzeiten-Übersicht je Spieler (wer fehlt unentschuldigt) |
 | MVP-3 Automatisierter Strafenvorschlag | Vorschlag 20 € (Pos. 8) mit Freigabe, Verwerfen, Storno; Katalog 2026/27 vollständig als Daten | Strafenkatalog ansehen und pflegen, manuelle Strafen aus dem Katalog (z. B. Verspätung Pos. 13) |
 | MVP-4 Digitale Teamkasse | Spieler-Kassenkonto mit Saldo | Teamübersicht aller offenen und bezahlten Strafen |
-| MVP-5 Zahlungsverfolgung durch den Kassenwart | Status `PAID_CASH`/`PAID_PAYPAL` im Datenmodell | 1 Klick „bezahlt bar“ / „bezahlt PayPal“, Teilzahlung, Storno durch Kassenwart |
-| MVP-6 Lückenloses Audit-Log | Protokoll für Vorschlag, Freigabe, Verwerfen, Storno; seit 03.11. per Datenbank gegen Ändern und Löschen geschützt | Zahlungen protokollieren, Verlauf je Strafe anzeigen |
+| MVP-5 Zahlungsverfolgung durch den Kassenwart | Status `PAID_CASH`/`PAID_PAYPAL` im Datenmodell | 1 Klick „bezahlt bar“ / „bezahlt PayPal“, Teilzahlung, Storno durch Kassenwart, überfällige Strafen (Frist 7 Tage ab Freigabe) markieren |
+| MVP-6 Lückenloses Audit-Log | Protokoll für Vorschlag, Freigabe, Verwerfen, Storno; seit 03.11. per Datenbank gegen Ändern und Löschen geschützt | Zahlungen protokollieren, Verlauf je Strafe anzeigen, Änderungen des Trainers an der Anwesenheit (Unentschuldigt/Entschuldigt) protokollieren; normale Spieler-Rückmeldungen nicht |
 
 Nicht im MVP (Gesamtumfang nach dem Vorbild SpielerPlus, siehe [Features und MVPs](anforderungen/features-und-mvps.md)): weitere Termintypen wie Spiel und Turnier, Spielplan-Import, Push-Benachrichtigungen, Chat, Ankündigungen, Umfragen, Rolle Betreuer, Eltern-Accounts, Beitragsverwaltung, automatische Verzugsgebühr.
 
@@ -36,6 +36,6 @@ Alle Diagramme (Komponenten, Sequenz, Zustandsautomat, Klassen, ER, jeweils Übe
 | Komponenten | Kassenwart-Ansicht (Teamkasse), Training anlegen, Funktion „Zahlung verbuchen“ in der PenaltyEngine | MVP-1, 4, 5 |
 | Sequenz | zweites Sequenzdiagramm „Kassenwart verbucht Zahlung“ | MVP-5 |
 | Zustandsautomat | „(P4)“ an den Zahlungsübergängen entfernen, Kassenwart als Auslöser beschriften | MVP-5 |
-| Klassen, ER | neue Operationen; falls auch Änderungen an der Anwesenheit protokolliert werden sollen, braucht `AuditLog` einen Bezug zu `Attendance` | MVP-6 |
+| Klassen, ER | neue Operationen; `AuditLog` braucht einen Bezug zu `Attendance`, weil auch die Änderungen des Trainers an der Anwesenheit protokolliert werden (Entscheidung 03.11.) | MVP-6 |
 
 Schon erledigt (03.11.): Das Protokoll wird nicht mehr mit der Strafe gelöscht (`onDelete: Restrict` statt `Cascade`), Klassen- und ER-Diagramm sind angepasst.
