@@ -20,6 +20,8 @@ function trainingAt(daysFromToday: number): Date {
 }
 
 async function main() {
+  // Nur auf leerer Datenbank (npm run db:reset): Das Audit-Log ist gegen Löschen geschützt (prisma/auditLogSchutz.ts),
+  // auf einer Datenbank mit Protokolleinträgen bricht der Seed deshalb hier ab.
   await prisma.auditLog.deleteMany();
   await prisma.penaltyEntry.deleteMany();
   await prisma.attendance.deleteMany();

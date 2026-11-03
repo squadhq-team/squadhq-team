@@ -14,7 +14,7 @@ Voraussetzung: Node.js 20 oder neuer und eine PostgreSQL-Datenbank (lokal oder S
 ```bash
 npm install
 cp .env.example .env
-npm run db:reset   # legt Tabellen an und lädt Demo-Daten (löscht vorhandene Daten!)
+npm run db:reset   # legt Tabellen an, lädt Demo-Daten und schützt das Audit-Log (löscht vorhandene Daten!)
 npm run dev
 ```
 
@@ -33,8 +33,17 @@ npm run dev
 
 Aktuelles Deployment: https://squadhq-omega.vercel.app (Vercel-Projekt `squadhq`, Region `arn1` neben der Supabase-DB in Stockholm, siehe `vercel.json`). Auf Vercel hängt an `DATABASE_URL` zusätzlich `&connection_limit=1`, damit die Serverless-Funktionen den Pooler nicht überlasten. Das Projekt ist noch nicht mit GitHub verbunden, neue Versionen also mit `npx vercel deploy --prod` veröffentlichen.
 
+## Datenbank aktualisieren, ohne Daten zu löschen
+Für die Live-Datenbank nach einer Schema- oder Katalogänderung:
+```bash
+npx prisma db push          # Schema übernehmen (z. B. Löschschutz des Audit-Logs)
+npm run db:audit-schutz     # Audit-Log gegen Ändern und Löschen sperren (Datenbank-Trigger)
+npm run db:sync-katalog     # Strafenkatalog an prisma/strafenkatalog.ts angleichen
+```
+Ist das Audit-Log geschützt, lassen sich Protokolleinträge nicht mehr löschen. `npm run db:seed` allein bricht dann ab; `npm run db:reset` setzt die Datenbank komplett neu auf.
+
 ## Tests
 ```bash
 npm test                                  # Unit-Tests
-RUN_DB_TESTS=1 npm test                   # zusätzlich Ablauftests gegen die DB in DATABASE_URL
+RUN_DB_TESTS=1 npm test                   # zusätzlich Ablauftests gegen die DB in DATABASE_URL (nur Test-DB, nicht Supabase-Live: Testdaten bleiben wegen des Audit-Log-Schutzes stehen)
 ```

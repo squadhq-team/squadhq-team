@@ -125,8 +125,8 @@ model PenaltyEntry {
   auditLog  AuditLog[]
 }
 
-/// Feedback Kassenwart: wer hat wann was eingetragen, geändert oder storniert
-/// Einträge werden nur angelegt, nie geändert oder gelöscht
+/// REQ-AUD-01 / Feedback Kassenwart: wer hat wann was eingetragen, geändert oder storniert
+/// Einträge werden nur angelegt, nie geändert oder gelöscht (Datenbank-Trigger, siehe prisma/auditLogSchutz.ts)
 model AuditLog {
   id        String         @id @default(cuid())
   entryId   String
@@ -137,6 +137,7 @@ model AuditLog {
   note      String?
   createdAt DateTime       @default(now())
 
-  entry PenaltyEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  /// Restrict: eine Strafe mit Protokoll lässt sich nicht löschen, nur stornieren (CANCELLED)
+  entry PenaltyEntry @relation(fields: [entryId], references: [id], onDelete: Restrict)
   actor User         @relation(fields: [actorId], references: [id])
 }

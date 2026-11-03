@@ -21,13 +21,13 @@
 **When** ein Spieler oder Trainer versucht, eine Strafe als bezahlt zu setzen
 **Then** wird das abgelehnt (nur Kassenwart, REQ-SEC-01)
 
-## REQ-AUD-01 Lückenloses Audit-Log (Entwurf für P4)
+## REQ-AUD-01 Lückenloses Audit-Log
 
 **AK5 Given** eine Strafe durchläuft Vorschlag, Freigabe und Zahlung
 **Then** enthält ihr Protokoll je Schritt einen Eintrag mit altem und neuem Status, Bearbeiter und Zeitstempel
 
-**When** jemand versucht, einen Protokolleintrag zu ändern oder zu löschen
-**Then** ist das über die App nicht möglich
+**When** jemand versucht, einen Protokolleintrag zu ändern oder zu löschen, auch direkt per SQL oder über das Löschen der Strafe
+**Then** lehnt die Datenbank das ab (umgesetzt, getestet in `tests/penaltyFlow.db.test.ts`; Protokoll der Zahlungen folgt mit REQ-PEN-04)
 
 ## Teststrategie
 - Unit-Tests für PenaltyEngine (Regelprüfung, Beträge)

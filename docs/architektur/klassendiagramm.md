@@ -19,7 +19,7 @@ classDiagram
   User "1" -- "0..*" PenaltyEntry : schuldet
   PenaltyRule "1" -- "0..*" PenaltyEntry : Grundlage
   TrainingSession "0..1" -- "0..*" PenaltyEntry : Anlass
-  PenaltyEntry "1" *-- "1..*" AuditLog : Verlauf
+  PenaltyEntry "1" -- "1..*" AuditLog : Verlauf
 ```
 
 Die Übersicht zeigt nur die Fachklassen und ihre Beziehungen; die Services stehen in der Detailansicht und im [Komponentendiagramm](komponenten.md).
@@ -160,7 +160,7 @@ classDiagram
   User "1" -- "0..*" PenaltyEntry : legt an
   PenaltyRule "1" -- "0..*" PenaltyEntry : Grundlage
   TrainingSession "0..1" -- "0..*" PenaltyEntry : Anlass
-  PenaltyEntry "1" *-- "1..*" AuditLog : Verlauf
+  PenaltyEntry "1" -- "1..*" AuditLog : Verlauf
   User "1" -- "0..*" AuditLog : Akteur
 
   AttendanceService ..> PenaltyEngine : nutzt
@@ -178,5 +178,6 @@ Hinweise zum Diagramm:
 
 - Datei der Klasse `PenaltyRules` ist `src/domain/penalties.ts` (reine Funktionen ohne Datenbank), `Auth` ist `src/lib/auth.ts`.
 - `AttendanceList` ist das Ergebnis von `getAttendanceList`: das Training und je Spieler des Kaders seine Rückmeldung (oder keine).
-- Komposition (gefüllte Raute): Wird ein Training gelöscht, werden seine Rückmeldungen mitgelöscht; wird eine Strafe gelöscht, auch ihr Protokoll (`onDelete: Cascade` im Schema).
+- Komposition (gefüllte Raute): Wird ein Training gelöscht, werden seine Rückmeldungen mitgelöscht (`onDelete: Cascade` im Schema).
+- `PenaltyEntry` und `AuditLog` sind bewusst nur assoziiert, nicht komponiert: Das Protokoll ist manipulationssicher (REQ-AUD-01). Eine Strafe mit Protokoll lässt sich nicht löschen (`onDelete: Restrict`), nur stornieren (`CANCELLED`); Protokolleinträge selbst lehnt die Datenbank beim Ändern und Löschen ab (Trigger, `prisma/auditLogSchutz.ts`).
 - `1..*` bei `AuditLog`: Die Datenbank erlaubt auch 0 Einträge, aber die PenaltyEngine legt jede Strafe zusammen mit dem Protokolleintrag `VORGESCHLAGEN` in derselben Transaktion an. Deshalb hat jede Strafe mindestens einen Eintrag.

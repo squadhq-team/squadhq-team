@@ -1,6 +1,6 @@
 # Datenmodell: ER-Diagramm
 
-> Stand P3, entspricht exakt `prisma/schema.prisma`. PK = Primärschlüssel, FK = Fremdschlüssel, UK = eindeutig, „optional“ = darf leer sein (`?` im Schema).
+> Stand P3 (Audit-Log-Schutz seit 03.11.2026), entspricht exakt `prisma/schema.prisma`. PK = Primärschlüssel, FK = Fremdschlüssel, UK = eindeutig, „optional“ = darf leer sein (`?` im Schema).
 
 ## Übersicht
 
@@ -97,7 +97,8 @@ erDiagram
 | `PENDING_APPROVAL` als eigener Status | Trainer will erst bestätigen (Interview Trainer) |
 | Zahlungsstatus statt Ja/Nein, inkl. `PARTIAL` | bar, PayPal und Teilzahlung (Interview Kassenwart) |
 | `CANCELLED` statt Löschen | Storno bleibt nachvollziehbar (Interview Kassenwart, Akzeptanzkriterium 3) |
-| `AuditLog` nur anlegen, nie ändern | wer hat wann was geändert (Interview Kassenwart) |
+| `AuditLog` nur anlegen, nie ändern oder löschen; per Datenbank-Trigger erzwungen | wer hat wann was geändert (Interview Kassenwart), manipulationssicher (MVP-6, REQ-AUD-01) |
+| Strafe mit Protokoll nicht löschbar (`onDelete: Restrict`) | Protokoll darf nicht über die Strafe mitgelöscht werden (REQ-AUD-01) |
 | eine `Attendance` je Spieler und Training (`@@unique`) | 1-Klick-Rückmeldung überschreibt die alte |
 | `note` optional | Absage ohne Rechtfertigungsdruck (Interview Spieler) |
 

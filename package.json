@@ -10,7 +10,9 @@
     "test": "vitest run",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
-    "db:reset": "prisma db push --force-reset && prisma db seed",
+    "db:reset": "prisma db push --force-reset && prisma db seed && npm run db:audit-schutz",
+    "db:audit-schutz": "tsx prisma/apply-audit-log-schutz.ts",
+    "db:sync-katalog": "tsx prisma/sync-strafenkatalog.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {
