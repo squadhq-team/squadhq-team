@@ -21,7 +21,8 @@ export default async function CashPage({ searchParams }: { searchParams: Promise
       <div>
         <h1 className="text-2xl font-bold">Teamkasse</h1>
         <p className="text-sm text-gray-600">
-          {canBook ? "Zahlungen mit einem Klick verbuchen." : "Nur ansehen. Zahlungen verbucht der Kassenwart."} Frist: 7 Tage ab Freigabe.
+          {canBook ? "Zahlungen mit einem Klick verbuchen." : "Nur ansehen. Zahlungen verbucht der Kassenwart."} Frist:
+          7 Tage ab Freigabe.
         </p>
       </div>
       <ErrorNotice message={fehler} />
@@ -29,7 +30,11 @@ export default async function CashPage({ searchParams }: { searchParams: Promise
       <div className="grid grid-cols-3 gap-2 text-center">
         <Stat label="Offen" value={formatEuro(cash.openCents)} tone="text-red-700" />
         <Stat label="Eingenommen" value={formatEuro(cash.paidCents)} tone="text-emerald-700" />
-        <Stat label="Überfällig" value={String(cash.overdueCount)} tone={cash.overdueCount > 0 ? "text-red-700" : "text-gray-900"} />
+        <Stat
+          label="Überfällig"
+          value={String(cash.overdueCount)}
+          tone={cash.overdueCount > 0 ? "text-red-700" : "text-gray-900"}
+        />
       </div>
 
       <Card title="Offene Strafen">
@@ -53,7 +58,8 @@ export default async function CashPage({ searchParams }: { searchParams: Promise
                     </p>
                     {overdue && (
                       <p className="mt-1 text-xs font-medium text-red-800">
-                        Überfällig seit {weeks} {weeks === 1 ? "Woche" : "Wochen"} · Mahngebühr laut Katalog {formatEuro(p.lateFeeCents)} (noch nicht gebucht)
+                        Überfällig seit {weeks} {weeks === 1 ? "Woche" : "Wochen"} · Mahngebühr laut Katalog{" "}
+                        {formatEuro(p.lateFeeCents)} (noch nicht gebucht)
                       </p>
                     )}
                   </div>
@@ -68,12 +74,23 @@ export default async function CashPage({ searchParams }: { searchParams: Promise
                 </div>
                 {canBook && (
                   <>
-                    <ActionForm action={payAction} className="mt-2 grid grid-cols-2 gap-2 text-sm font-medium text-white">
+                    <ActionForm
+                      action={payAction}
+                      className="mt-2 grid grid-cols-2 gap-2 text-sm font-medium text-white"
+                    >
                       <input type="hidden" name="entryId" value={p.id} />
-                      <SubmitButton name="method" value="CASH" className="rounded-lg bg-emerald-700 px-2 py-2 hover:bg-emerald-800">
+                      <SubmitButton
+                        name="method"
+                        value="CASH"
+                        className="rounded-lg bg-emerald-700 px-2 py-2 hover:bg-emerald-800"
+                      >
                         Bezahlt (bar)
                       </SubmitButton>
-                      <SubmitButton name="method" value="PAYPAL" className="rounded-lg bg-sky-700 px-2 py-2 hover:bg-sky-800">
+                      <SubmitButton
+                        name="method"
+                        value="PAYPAL"
+                        className="rounded-lg bg-sky-700 px-2 py-2 hover:bg-sky-800"
+                      >
                         Bezahlt (PayPal)
                       </SubmitButton>
                     </ActionForm>
@@ -81,11 +98,25 @@ export default async function CashPage({ searchParams }: { searchParams: Promise
                       <summary className="cursor-pointer text-emerald-800">Teilzahlung verbuchen</summary>
                       <ActionForm action={payAction} className="mt-2 flex flex-wrap items-center gap-2">
                         <input type="hidden" name="entryId" value={p.id} />
-                        <input name="amount" inputMode="decimal" placeholder="Betrag in €, z. B. 10" required className={`${inputClass} max-w-40`} />
-                        <SubmitButton name="method" value="CASH" className="rounded-lg bg-gray-200 px-3 py-2 hover:bg-gray-300">
+                        <input
+                          name="amount"
+                          inputMode="decimal"
+                          placeholder="Betrag in €, z. B. 10"
+                          required
+                          className={`${inputClass} max-w-40`}
+                        />
+                        <SubmitButton
+                          name="method"
+                          value="CASH"
+                          className="rounded-lg bg-gray-200 px-3 py-2 hover:bg-gray-300"
+                        >
                           bar
                         </SubmitButton>
-                        <SubmitButton name="method" value="PAYPAL" className="rounded-lg bg-gray-200 px-3 py-2 hover:bg-gray-300">
+                        <SubmitButton
+                          name="method"
+                          value="PAYPAL"
+                          className="rounded-lg bg-gray-200 px-3 py-2 hover:bg-gray-300"
+                        >
                           PayPal
                         </SubmitButton>
                       </ActionForm>

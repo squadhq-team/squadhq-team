@@ -3,13 +3,7 @@
  * Wird von der PenaltyEngine (src/services/penaltyEngine.ts) verwendet.
  */
 
-export type PenaltyStatus =
-  | "PENDING_APPROVAL"
-  | "OPEN"
-  | "PARTIAL"
-  | "PAID_CASH"
-  | "PAID_PAYPAL"
-  | "CANCELLED";
+export type PenaltyStatus = "PENDING_APPROVAL" | "OPEN" | "PARTIAL" | "PAID_CASH" | "PAID_PAYPAL" | "CANCELLED";
 
 export type AttendanceStatus = "ATTENDING" | "EXCUSED" | "UNSURE" | "UNEXCUSED";
 

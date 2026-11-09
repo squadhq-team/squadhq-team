@@ -19,8 +19,17 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       <Card title="Anmelden">
         <ActionForm action={loginWithPassword} className="space-y-3 text-sm">
           <input name="email" type="email" autoComplete="email" placeholder="E-Mail" required className={inputClass} />
-          <input name="password" type="password" autoComplete="current-password" placeholder="Passwort" required className={inputClass} />
-          <SubmitButton className="w-full rounded-lg bg-emerald-700 px-3 py-2.5 font-medium text-white hover:bg-emerald-800">Anmelden</SubmitButton>
+          <input
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            placeholder="Passwort"
+            required
+            className={inputClass}
+          />
+          <SubmitButton className="w-full rounded-lg bg-emerald-700 px-3 py-2.5 font-medium text-white hover:bg-emerald-800">
+            Anmelden
+          </SubmitButton>
         </ActionForm>
         <p className="mt-3 text-center text-sm">
           Noch kein Konto?{" "}
@@ -30,7 +39,9 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         </p>
       </Card>
       <Card title="Demo-Anmeldung">
-        <p className="mb-2 text-xs text-gray-500">Für die Präsentation: eine Person wählen, um die App aus ihrer Rolle zu sehen.</p>
+        <p className="mb-2 text-xs text-gray-500">
+          Für die Präsentation: eine Person wählen, um die App aus ihrer Rolle zu sehen.
+        </p>
         <ul className="divide-y">
           {users.map((u) => (
             <li key={u.id}>

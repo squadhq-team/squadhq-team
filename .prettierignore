@@ -1,0 +1,10 @@
+# Abhängigkeiten, Build und automatisch erzeugte Dateien
+node_modules
+.next
+.vercel
+coverage
+package-lock.json
+next-env.d.ts
+# Doku (Markdown mit Mermaid-Diagrammen und Tabellen) und Präsentationen bleiben, wie sie sind
+docs
+*.md

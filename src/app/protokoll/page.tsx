@@ -16,7 +16,8 @@ export default async function AuditPage() {
       <div>
         <h1 className="text-2xl font-bold">Protokoll</h1>
         <p className="text-sm text-gray-600">
-          Alle Änderungen an Strafen und alle vom Trainer gesetzten Anwesenheiten, neueste zuerst. Einträge können nicht geändert oder gelöscht werden.
+          Alle Änderungen an Strafen und alle vom Trainer gesetzten Anwesenheiten, neueste zuerst. Einträge können nicht
+          geändert oder gelöscht werden.
         </p>
       </div>
       <Card>

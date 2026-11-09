@@ -16,7 +16,10 @@ export default async function TrainerPage() {
     const count = (st: string) => s.attendances.filter((a) => a.status === st).length;
     return (
       <li key={s.id}>
-        <Link href={`/trainer/training/${s.id}`} className="flex items-center justify-between gap-2 py-3 hover:bg-gray-50">
+        <Link
+          href={`/trainer/training/${s.id}`}
+          className="flex items-center justify-between gap-2 py-3 hover:bg-gray-50"
+        >
           <div>
             <p className="font-medium">{s.title}</p>
             <p className="text-sm text-gray-600">{formatDateTime(s.startsAt)}</p>
@@ -36,7 +39,10 @@ export default async function TrainerPage() {
     <>
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">Trainer-Dashboard</h1>
-        <Link href="/trainer/neu" className="rounded-lg bg-emerald-700 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-800">
+        <Link
+          href="/trainer/neu"
+          className="rounded-lg bg-emerald-700 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-800"
+        >
           + Training anlegen
         </Link>
       </div>

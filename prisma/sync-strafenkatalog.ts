@@ -23,8 +23,16 @@ async function main() {
     let updated = 0;
 
     for (const rule of STRAFENKATALOG) {
-      const match = existing.find((r) => (rule.position !== null ? r.position === rule.position : r.position === null && r.title === rule.title));
-      const data = { position: rule.position, title: rule.title, amountCents: rule.amountCents, trigger: rule.trigger, active: rule.active ?? true };
+      const match = existing.find((r) =>
+        rule.position !== null ? r.position === rule.position : r.position === null && r.title === rule.title,
+      );
+      const data = {
+        position: rule.position,
+        title: rule.title,
+        amountCents: rule.amountCents,
+        trigger: rule.trigger,
+        active: rule.active ?? true,
+      };
       if (match) {
         await tx.penaltyRule.update({ where: { id: match.id }, data });
         kept.add(match.id);

@@ -22,11 +22,21 @@ describe.skipIf(!run)("Ablauf Strafvorschlag (REQ-PEN-02)", () => {
     const player = await prisma.user.create({ data: { name: "Test Spieler", role: "PLAYER" } });
     await prisma.penaltyRule.upsert({
       where: { position: 8 },
-      create: { position: 8, title: "Unentschuldigtes Fehlen beim Training", amountCents: 2000, trigger: "UNEXCUSED_ABSENCE" },
+      create: {
+        position: 8,
+        title: "Unentschuldigtes Fehlen beim Training",
+        amountCents: 2000,
+        trigger: "UNEXCUSED_ABSENCE",
+      },
       update: {},
     });
     const session = await prisma.trainingSession.create({
-      data: { title: "Testtraining", startsAt: new Date(Date.now() - 86_400_000), responseDeadline: new Date(Date.now() - 2 * 86_400_000), createdById: trainer.id },
+      data: {
+        title: "Testtraining",
+        startsAt: new Date(Date.now() - 86_400_000),
+        responseDeadline: new Date(Date.now() - 2 * 86_400_000),
+        createdById: trainer.id,
+      },
     });
     trainerId = trainer.id;
     playerId = player.id;
@@ -59,13 +69,17 @@ describe.skipIf(!run)("Ablauf Strafvorschlag (REQ-PEN-02)", () => {
     await setByTrainer({ trainerId, sessionId, playerId, status: "EXCUSED" });
     const [after] = await entries();
     expect(after.status).toBe("CANCELLED");
-    expect(after.auditLog.map((a) => a.action)).toEqual(expect.arrayContaining(["VORGESCHLAGEN", "FREIGEGEBEN", "STORNIERT"]));
+    expect(after.auditLog.map((a) => a.action)).toEqual(
+      expect.arrayContaining(["VORGESCHLAGEN", "FREIGEGEBEN", "STORNIERT"]),
+    );
   });
 
   it("AK5: Protokolleinträge lassen sich weder ändern noch löschen, auch nicht über die Strafe", async () => {
     const [entry] = await entries();
     const first = entry.auditLog[0];
-    await expect(prisma.auditLog.update({ where: { id: first.id }, data: { note: "geändert" } })).rejects.toThrow(/unveränderlich/);
+    await expect(prisma.auditLog.update({ where: { id: first.id }, data: { note: "geändert" } })).rejects.toThrow(
+      /unveränderlich/,
+    );
     await expect(prisma.auditLog.delete({ where: { id: first.id } })).rejects.toThrow(/unveränderlich/);
     await expect(prisma.penaltyEntry.delete({ where: { id: entry.id } })).rejects.toThrow();
     await expect(prisma.$executeRawUnsafe('TRUNCATE "AuditLog" CASCADE')).rejects.toThrow(/unveränderlich/);

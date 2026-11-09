@@ -7,13 +7,7 @@ import type { AttendanceStatus, PenaltyStatus } from "@prisma/client";
 import { prisma, type Tx } from "@/lib/db";
 
 export type AuditAction =
-  | "VORGESCHLAGEN"
-  | "FREIGEGEBEN"
-  | "VERWORFEN"
-  | "STORNIERT"
-  | "TEILZAHLUNG"
-  | "BEZAHLT"
-  | "ANWESENHEIT_GESETZT";
+  "VORGESCHLAGEN" | "FREIGEGEBEN" | "VERWORFEN" | "STORNIERT" | "TEILZAHLUNG" | "BEZAHLT" | "ANWESENHEIT_GESETZT";
 
 export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
   VORGESCHLAGEN: "Strafe vorgeschlagen",
@@ -28,7 +22,14 @@ export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
 /** Protokolliert eine Statusänderung einer Strafe. */
 export async function logPenaltyChange(
   tx: Tx,
-  params: { entryId: string; actorId: string; action: AuditAction; oldStatus: PenaltyStatus | null; newStatus: PenaltyStatus; note?: string },
+  params: {
+    entryId: string;
+    actorId: string;
+    action: AuditAction;
+    oldStatus: PenaltyStatus | null;
+    newStatus: PenaltyStatus;
+    note?: string;
+  },
 ) {
   await tx.auditLog.create({ data: params });
 }
@@ -36,7 +37,12 @@ export async function logPenaltyChange(
 /** Protokolliert eine Anwesenheit, die der Trainer gesetzt oder geändert hat. */
 export async function logAttendanceChange(
   tx: Tx,
-  params: { attendanceId: string; actorId: string; oldAttendance: AttendanceStatus | null; newAttendance: AttendanceStatus },
+  params: {
+    attendanceId: string;
+    actorId: string;
+    oldAttendance: AttendanceStatus | null;
+    newAttendance: AttendanceStatus;
+  },
 ) {
   await tx.auditLog.create({ data: { ...params, action: "ANWESENHEIT_GESETZT" } });
 }

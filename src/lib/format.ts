@@ -1,3 +1,4 @@
+/** Anzeige-Hilfen: Euro- und Datumsformat (Berliner Zeit), deutsche Texte für Enum-Werte, Eingaben aus Formularen umwandeln. */
 const euro = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" });
 const dateTime = new Intl.DateTimeFormat("de-DE", {
   weekday: "short",

@@ -28,12 +28,22 @@ describe.skipIf(!run)("P4-Abläufe (MVP-1, MVP-4, MVP-5, MVP-6, Registrierung)",
     playerId = (await prisma.user.create({ data: { name: "P4 Spieler", role: "PLAYER" } })).id;
     await prisma.penaltyRule.upsert({
       where: { position: 8 },
-      create: { position: 8, title: "Unentschuldigtes Fehlen beim Training", amountCents: 2000, trigger: "UNEXCUSED_ABSENCE" },
+      create: {
+        position: 8,
+        title: "Unentschuldigtes Fehlen beim Training",
+        amountCents: 2000,
+        trigger: "UNEXCUSED_ABSENCE",
+      },
       update: {},
     });
     sessionId = (
       await prisma.trainingSession.create({
-        data: { title: "P4 Testtraining", startsAt: new Date(Date.now() - DAY), responseDeadline: new Date(Date.now() - 2 * DAY), createdById: trainerId },
+        data: {
+          title: "P4 Testtraining",
+          startsAt: new Date(Date.now() - DAY),
+          responseDeadline: new Date(Date.now() - 2 * DAY),
+          createdById: trainerId,
+        },
       })
     ).id;
   });
@@ -62,7 +72,9 @@ describe.skipIf(!run)("P4-Abläufe (MVP-1, MVP-4, MVP-5, MVP-6, Registrierung)",
   });
 
   it("AK4/MVP-5: Teilzahlung, dann Rest per PayPal; jeder Schritt im Protokoll mit Kassenwart", async () => {
-    const entry = await prisma.penaltyEntry.findFirstOrThrow({ where: { sessionId, playerId, status: "PENDING_APPROVAL" } });
+    const entry = await prisma.penaltyEntry.findFirstOrThrow({
+      where: { sessionId, playerId, status: "PENDING_APPROVAL" },
+    });
     await approvePenalty(entry.id, trainerId);
 
     await recordPayment({ entryId: entry.id, actorId: cashierId, method: "CASH", amountCents: 500 });
@@ -70,12 +82,17 @@ describe.skipIf(!run)("P4-Abläufe (MVP-1, MVP-4, MVP-5, MVP-6, Registrierung)",
     expect(partial).toMatchObject({ status: "PARTIAL", paidCents: 500, method: "CASH" });
 
     await recordPayment({ entryId: entry.id, actorId: cashierId, method: "PAYPAL" });
-    const after = await prisma.penaltyEntry.findUniqueOrThrow({ where: { id: entry.id }, include: { auditLog: { orderBy: { createdAt: "asc" } } } });
+    const after = await prisma.penaltyEntry.findUniqueOrThrow({
+      where: { id: entry.id },
+      include: { auditLog: { orderBy: { createdAt: "asc" } } },
+    });
     expect(after).toMatchObject({ status: "PAID_PAYPAL", paidCents: 2000, method: "PAYPAL" });
     expect(after.auditLog.map((a) => a.action)).toEqual(["VORGESCHLAGEN", "FREIGEGEBEN", "TEILZAHLUNG", "BEZAHLT"]);
     expect(after.auditLog.slice(2).every((a) => a.actorId === cashierId)).toBe(true);
 
-    await expect(recordPayment({ entryId: entry.id, actorId: cashierId, method: "CASH" })).rejects.toThrow(/nicht offen/);
+    await expect(recordPayment({ entryId: entry.id, actorId: cashierId, method: "CASH" })).rejects.toThrow(
+      /nicht offen/,
+    );
   });
 
   it("MVP-4: Teamkasse zeigt bezahlte Strafen und markiert überfällige", async () => {
@@ -101,7 +118,9 @@ describe.skipIf(!run)("P4-Abläufe (MVP-1, MVP-4, MVP-5, MVP-6, Registrierung)",
     const session = await createSession({ trainerId, title: " ", startsAt, location: "Platz 2" });
     expect(session).toMatchObject({ title: "Mannschaftstraining", location: "Platz 2", createdById: trainerId });
     expect(startsAt.getTime() - session.responseDeadline.getTime()).toBe(3 * 60 * 60 * 1000);
-    await expect(createSession({ trainerId, title: "x", startsAt: new Date(Date.now() - DAY) })).rejects.toThrow(/Zukunft/);
+    await expect(createSession({ trainerId, title: "x", startsAt: new Date(Date.now() - DAY) })).rejects.toThrow(
+      /Zukunft/,
+    );
     await expect(
       createSession({ trainerId, title: "x", startsAt, responseDeadline: new Date(startsAt.getTime() + 1000) }),
     ).rejects.toThrow(/vor dem Trainingsbeginn/);
@@ -109,7 +128,12 @@ describe.skipIf(!run)("P4-Abläufe (MVP-1, MVP-4, MVP-5, MVP-6, Registrierung)",
 
   it("Registrierung: neues Konto ist Spieler, E-Mail eindeutig, Passwort nur als Hash", async () => {
     const email = `p4-${Date.now()}@example.org`;
-    const input = { name: "Neu Spieler", email: email.toUpperCase(), password: "geheim123", passwordRepeat: "geheim123" };
+    const input = {
+      name: "Neu Spieler",
+      email: email.toUpperCase(),
+      password: "geheim123",
+      passwordRepeat: "geheim123",
+    };
     const user = await registerUser(input);
     expect(user).toMatchObject({ role: "PLAYER", email });
     expect(user.passwordHash).not.toContain("geheim123");

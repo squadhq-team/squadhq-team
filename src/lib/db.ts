@@ -1,3 +1,4 @@
+/** Datenbankzugriff (Schicht 5): ein gemeinsamer Prisma Client; im Entwicklungsmodus wiederverwendet, damit Hot Reload keine neuen Verbindungen öffnet. */
 import { PrismaClient } from "@prisma/client";
 
 // Eine Instanz pro Prozess, auch bei Hot Reload im Dev-Modus

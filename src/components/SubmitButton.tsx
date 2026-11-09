@@ -31,9 +31,12 @@ export function ActionForm({
   const [status, setStatus] = useState<Status>({ phase: "idle", clicked: null });
   const busy = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => {
-    if (timer.current) clearTimeout(timer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -92,7 +95,8 @@ export function SubmitButton({ children, className = "", name, value, current }:
   const anySelected = (phase !== "idle" && clickedInGroup) || Boolean(current);
 
   let look = "";
-  if (choiceGroup && anySelected) look = selected ? "ring-2 ring-offset-2 ring-gray-900 font-semibold" : "opacity-40 hover:opacity-80";
+  if (choiceGroup && anySelected)
+    look = selected ? "ring-2 ring-offset-2 ring-gray-900 font-semibold" : "opacity-40 hover:opacity-80";
   else if (pending && !isMine) look = "opacity-50";
 
   return (
@@ -114,5 +118,10 @@ export function SubmitButton({ children, className = "", name, value, current }:
 }
 
 function Spinner() {
-  return <span aria-hidden className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent" />;
+  return (
+    <span
+      aria-hidden
+      className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent"
+    />
+  );
 }

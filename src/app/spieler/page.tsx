@@ -38,7 +38,9 @@ export default async function PlayerPage() {
                     </p>
                     <p className="text-xs text-gray-500">Rückmeldung bis {formatDateTime(s.responseDeadline)}</p>
                   </div>
-                  <Badge tone={attendanceTone(mine?.status)}>{mine ? ATTENDANCE_LABEL[mine.status] : "Keine Antwort"}</Badge>
+                  <Badge tone={attendanceTone(mine?.status)}>
+                    {mine ? ATTENDANCE_LABEL[mine.status] : "Keine Antwort"}
+                  </Badge>
                 </div>
                 <ActionForm action={respondAction} className="mt-3 space-y-2">
                   <input type="hidden" name="sessionId" value={s.id} />
@@ -68,8 +70,17 @@ export default async function PlayerPage() {
         </ul>
       </Card>
 
-      <Card title="Mein Kassenkonto" action={<span className={`text-xl font-bold ${saldo > 0 ? "text-red-700" : "text-emerald-700"}`}>{formatEuro(saldo)}</span>}>
-        <p className="mb-3 text-sm text-gray-600">{saldo > 0 ? "Offener Betrag. Bitte bar nach dem Training oder per PayPal an die Kasse." : "Alles bezahlt."}</p>
+      <Card
+        title="Mein Kassenkonto"
+        action={
+          <span className={`text-xl font-bold ${saldo > 0 ? "text-red-700" : "text-emerald-700"}`}>
+            {formatEuro(saldo)}
+          </span>
+        }
+      >
+        <p className="mb-3 text-sm text-gray-600">
+          {saldo > 0 ? "Offener Betrag. Bitte bar nach dem Training oder per PayPal an die Kasse." : "Alles bezahlt."}
+        </p>
         {visible.length === 0 ? (
           <p className="text-sm text-gray-500">Keine Strafen.</p>
         ) : (

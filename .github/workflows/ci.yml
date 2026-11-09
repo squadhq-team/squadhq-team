@@ -1,0 +1,64 @@
+# Automatische Prüfung bei jedem Push auf main und bei jedem Pull Request.
+# Läuft dasselbe wie lokal `npm run check`, zusätzlich mit Datenbank-Tests und Build.
+# Regeln und Begründung: docs/coding-guidelines.md
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pruefen:
+    name: Lint, Format, Typen, Tests, Build
+    runs-on: ubuntu-latest
+
+    # Eigene, leere Test-Datenbank nur für diesen Lauf (nicht die Live-DB bei Supabase)
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: squadhq_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/squadhq_ci
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/squadhq_ci
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: ESLint (Codequalität und Schichtenregeln)
+        run: npm run lint
+
+      - name: Prettier (einheitliche Formatierung)
+        run: npm run format:check
+
+      - name: TypeScript (Typen prüfen)
+        run: npm run typecheck
+
+      - name: Test-Datenbank anlegen
+        run: npx prisma db push --skip-generate
+
+      - name: Tests (Unit- und Datenbank-Tests)
+        run: npm test
+        env:
+          RUN_DB_TESTS: "1"
+
+      - name: Build (wie auf Vercel)
+        run: npm run build

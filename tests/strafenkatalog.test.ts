@@ -6,7 +6,13 @@ import { describe, expect, it } from "vitest";
 import { suggestRuleForAttendance } from "@/domain/penalties";
 import { STRAFENKATALOG } from "../prisma/strafenkatalog";
 
-const rules = STRAFENKATALOG.map((r, i) => ({ id: `r${i}`, position: r.position, amountCents: r.amountCents, trigger: r.trigger, active: r.active ?? true }));
+const rules = STRAFENKATALOG.map((r, i) => ({
+  id: `r${i}`,
+  position: r.position,
+  amountCents: r.amountCents,
+  trigger: r.trigger,
+  active: r.active ?? true,
+}));
 const byPosition = (p: number) => STRAFENKATALOG.find((r) => r.position === p);
 const byTitle = (prefix: string) => STRAFENKATALOG.find((r) => r.title.startsWith(prefix));
 

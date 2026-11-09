@@ -8,7 +8,12 @@ import { syncPenaltyForAttendance } from "./penaltyEngine";
 import { logAttendanceChange } from "./auditService";
 
 /** Spieler meldet sich per 1-Klick zurück; erlaubt bis zum Trainingsbeginn. */
-export async function respond(params: { playerId: string; sessionId: string; status: AttendanceStatus; note?: string }) {
+export async function respond(params: {
+  playerId: string;
+  sessionId: string;
+  status: AttendanceStatus;
+  note?: string;
+}) {
   if (!PLAYER_CHOICES.includes(params.status)) throw new Error("Diesen Status kann nur der Trainer setzen.");
   const session = await prisma.trainingSession.findUniqueOrThrow({ where: { id: params.sessionId } });
   if (new Date() > session.startsAt) throw new Error("Das Training hat schon begonnen.");
@@ -25,7 +30,12 @@ export async function respond(params: { playerId: string; sessionId: string; sta
  * Anwesenheit, Protokolleintrag (MVP-6) und Strafvorschlag werden in einer Transaktion geschrieben, damit alles konsistent bleibt.
  * Ein Protokolleintrag entsteht nur, wenn sich der Status wirklich ändert.
  */
-export async function setByTrainer(params: { trainerId: string; sessionId: string; playerId: string; status: AttendanceStatus }) {
+export async function setByTrainer(params: {
+  trainerId: string;
+  sessionId: string;
+  playerId: string;
+  status: AttendanceStatus;
+}) {
   await prisma.$transaction(async (tx) => {
     const key = { sessionId_userId: { sessionId: params.sessionId, userId: params.playerId } };
     const before = await tx.attendance.findUnique({ where: key });

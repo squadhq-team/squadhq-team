@@ -30,9 +30,12 @@ describe("applyPayment (REQ-PEN-04)", () => {
     expect(() => applyPayment(open, "CASH", NaN)).toThrow();
   });
 
-  it.each(["PENDING_APPROVAL", "PAID_CASH", "PAID_PAYPAL", "CANCELLED"] as const)("lehnt Zahlung bei Status %s ab", (status) => {
-    expect(() => applyPayment({ ...open, status }, "CASH")).toThrow(/nicht offen/);
-  });
+  it.each(["PENDING_APPROVAL", "PAID_CASH", "PAID_PAYPAL", "CANCELLED"] as const)(
+    "lehnt Zahlung bei Status %s ab",
+    (status) => {
+      expect(() => applyPayment({ ...open, status }, "CASH")).toThrow(/nicht offen/);
+    },
+  );
 });
 
 describe("überfällige Strafen (Frist 7 Tage, Mahngebühr nur angezeigt)", () => {

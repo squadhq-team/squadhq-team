@@ -14,7 +14,8 @@ export type RegistrationInput = { name: string; email: string; password: string;
 export function validateRegistration(input: RegistrationInput): string | null {
   if (input.name.trim().length < 2) return "Bitte deinen Namen angeben.";
   if (!EMAIL.test(input.email.trim())) return "Bitte eine gültige E-Mail-Adresse angeben.";
-  if (input.password.length < MIN_PASSWORD_LENGTH) return `Das Passwort muss mindestens ${MIN_PASSWORD_LENGTH} Zeichen haben.`;
+  if (input.password.length < MIN_PASSWORD_LENGTH)
+    return `Das Passwort muss mindestens ${MIN_PASSWORD_LENGTH} Zeichen haben.`;
   if (input.password !== input.passwordRepeat) return "Die Passwörter stimmen nicht überein.";
   return null;
 }

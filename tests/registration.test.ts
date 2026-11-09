@@ -13,8 +13,10 @@ describe("validateRegistration", () => {
   it("akzeptiert gültige Eingaben", () => expect(validateRegistration(valid)).toBeNull());
   it("verlangt einen Namen", () => expect(validateRegistration({ ...valid, name: " " })).toMatch(/Namen/));
   it("verlangt eine gültige E-Mail", () => expect(validateRegistration({ ...valid, email: "max" })).toMatch(/E-Mail/));
-  it("verlangt mindestens 8 Zeichen", () => expect(validateRegistration({ ...valid, password: "kurz", passwordRepeat: "kurz" })).toMatch(/8 Zeichen/));
-  it("verlangt gleiche Passwörter", () => expect(validateRegistration({ ...valid, passwordRepeat: "anders123" })).toMatch(/stimmen nicht/));
+  it("verlangt mindestens 8 Zeichen", () =>
+    expect(validateRegistration({ ...valid, password: "kurz", passwordRepeat: "kurz" })).toMatch(/8 Zeichen/));
+  it("verlangt gleiche Passwörter", () =>
+    expect(validateRegistration({ ...valid, passwordRepeat: "anders123" })).toMatch(/stimmen nicht/));
 });
 
 describe("Passwörter", () => {

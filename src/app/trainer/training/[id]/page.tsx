@@ -75,10 +75,15 @@ export default async function TrainingPage({ params }: { params: Promise<{ id: s
                   <p className="font-medium">{player.name}</p>
                   {attendance?.note && <p className="text-xs text-gray-500">Grund: {attendance.note}</p>}
                 </div>
-                <Badge tone={attendanceTone(attendance?.status)}>{attendance ? ATTENDANCE_LABEL[attendance.status] : "Keine Antwort"}</Badge>
+                <Badge tone={attendanceTone(attendance?.status)}>
+                  {attendance ? ATTENDANCE_LABEL[attendance.status] : "Keine Antwort"}
+                </Badge>
               </div>
               {isPast && (
-                <ActionForm action={setAttendanceAction} className="mt-2 grid grid-cols-3 gap-2 text-xs font-medium text-white sm:text-sm">
+                <ActionForm
+                  action={setAttendanceAction}
+                  className="mt-2 grid grid-cols-3 gap-2 text-xs font-medium text-white sm:text-sm"
+                >
                   <input type="hidden" name="sessionId" value={session.id} />
                   <input type="hidden" name="playerId" value={player.id} />
                   {TRAINER_CHOICES.map((c) => (

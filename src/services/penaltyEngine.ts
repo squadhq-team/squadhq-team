@@ -41,7 +41,13 @@ export async function syncPenaltyForAttendance(
         createdById: params.actorId,
       },
     });
-    await logPenaltyChange(tx, { entryId: entry.id, actorId: params.actorId, action: "VORGESCHLAGEN", oldStatus: null, newStatus: "PENDING_APPROVAL" });
+    await logPenaltyChange(tx, {
+      entryId: entry.id,
+      actorId: params.actorId,
+      action: "VORGESCHLAGEN",
+      oldStatus: null,
+      newStatus: "PENDING_APPROVAL",
+    });
     return;
   }
 
@@ -75,7 +81,13 @@ export async function discardPenalty(entryId: string, actorId: string) {
     const entry = await tx.penaltyEntry.findUniqueOrThrow({ where: { id: entryId } });
     if (entry.status !== "PENDING_APPROVAL") throw new Error("Diese Strafe wartet nicht auf Freigabe.");
     await tx.penaltyEntry.update({ where: { id: entryId }, data: { status: "CANCELLED" } });
-    await logPenaltyChange(tx, { entryId, actorId, action: "VERWORFEN", oldStatus: entry.status, newStatus: "CANCELLED" });
+    await logPenaltyChange(tx, {
+      entryId,
+      actorId,
+      action: "VERWORFEN",
+      oldStatus: entry.status,
+      newStatus: "CANCELLED",
+    });
   });
 }
 

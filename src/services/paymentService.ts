@@ -3,7 +3,16 @@
  * Die Rechenregeln (Teilzahlung, überfällig) liegen in src/domain/penalties.ts, hier passiert nur die Persistenz.
  */
 import { prisma } from "@/lib/db";
-import { LATE_FEE_CENTS_PER_WEEK, applyPayment, balance, isOutstanding, isOverdue, openAmount, weeksOverdue, type PaymentMethod } from "@/domain/penalties";
+import {
+  LATE_FEE_CENTS_PER_WEEK,
+  applyPayment,
+  balance,
+  isOutstanding,
+  isOverdue,
+  openAmount,
+  weeksOverdue,
+  type PaymentMethod,
+} from "@/domain/penalties";
 import { formatEuro } from "@/lib/format";
 import { logPenaltyChange } from "./auditService";
 
@@ -11,7 +20,12 @@ import { logPenaltyChange } from "./auditService";
  * Kassenwart verbucht eine Zahlung. Ohne Betrag wird der ganze offene Rest bezahlt (1-Klick: bar oder PayPal),
  * mit Betrag eine Teilzahlung. Strafe und Protokoll werden in einer Transaktion geschrieben.
  */
-export async function recordPayment(params: { entryId: string; actorId: string; method: PaymentMethod; amountCents?: number }) {
+export async function recordPayment(params: {
+  entryId: string;
+  actorId: string;
+  method: PaymentMethod;
+  amountCents?: number;
+}) {
   await prisma.$transaction(async (tx) => {
     const entry = await tx.penaltyEntry.findUniqueOrThrow({ where: { id: params.entryId } });
     const result = applyPayment(entry, params.method, params.amountCents);
@@ -45,9 +59,17 @@ export async function getTeamCash(now: Date = new Date()) {
     .filter((e) => isOutstanding(e.status))
     .map((e) => {
       const weeks = weeksOverdue(e, now);
-      return { ...e, openCents: openAmount(e), overdue: isOverdue(e, now), weeksOverdue: weeks, lateFeeCents: weeks * LATE_FEE_CENTS_PER_WEEK };
+      return {
+        ...e,
+        openCents: openAmount(e),
+        overdue: isOverdue(e, now),
+        weeksOverdue: weeks,
+        lateFeeCents: weeks * LATE_FEE_CENTS_PER_WEEK,
+      };
     });
-  const paid = entries.filter((e) => !isOutstanding(e.status)).sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+  const paid = entries
+    .filter((e) => !isOutstanding(e.status))
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
   const perPlayer = new Map<string, { name: string; saldoCents: number }>();
   for (const e of open) {
