@@ -1,12 +1,13 @@
 /**
  * REQ-SEC-01: Rollenbasiertes Rechtesystem.
- * Prototyp: Anmeldung per Demo-Auswahl (Cookie mit User-ID). Später durch Supabase Auth ersetzbar,
- * ohne dass Seiten oder Services sich ändern, weil alle nur getCurrentUser/requireRole nutzen.
+ * Anmeldung mit E-Mail und Passwort (seit P4, Konto über die Registrierung) oder per Demo-Auswahl für die Präsentation.
+ * Beides setzt dasselbe Cookie mit der User-ID; Seiten und Services nutzen nur getCurrentUser/requireRole.
  */
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { Role, User } from "@prisma/client";
 import { prisma } from "./db";
+import { verifyPassword } from "./password";
 
 export const SESSION_COOKIE = "squadhq_user";
 
@@ -31,16 +32,36 @@ export async function assertRole(...roles: Role[]): Promise<User> {
   return user;
 }
 
-/** Demo-Anmeldung: alle Personen zur Auswahl (wird mit Supabase Auth durch Registrierung/Login ersetzt). */
+/** Demo-Anmeldung: die Demo-Personen (ohne eigenes Passwort) zur Auswahl. */
 export function listLoginUsers(): Promise<User[]> {
-  return prisma.user.findMany({ orderBy: [{ role: "asc" }, { name: "asc" }] });
+  return prisma.user.findMany({ where: { passwordHash: null }, orderBy: [{ role: "asc" }, { name: "asc" }] });
 }
 
-/** Demo-Anmeldung: merkt sich die gewählte Person im Cookie und liefert sie zurück. */
+/** Merkt sich die angemeldete Person im Cookie. */
+export async function startSession(user: User): Promise<User> {
+  (await cookies()).set(SESSION_COOKIE, user.id, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    secure: process.env.NODE_ENV === "production",
+  });
+  return user;
+}
+
+/** Demo-Anmeldung: nur Demo-Personen ohne Passwort; registrierte Konten brauchen ihr Passwort. */
 export async function signIn(userId: string): Promise<User> {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
-  (await cookies()).set(SESSION_COOKIE, user.id, { httpOnly: true, sameSite: "lax", path: "/" });
-  return user;
+  if (user.passwordHash) throw new Error("Dieses Konto meldet sich mit E-Mail und Passwort an.");
+  return startSession(user);
+}
+
+/** Anmeldung mit E-Mail und Passwort. Gleiche Fehlermeldung bei falscher E-Mail und falschem Passwort. */
+export async function signInWithPassword(email: string, password: string): Promise<User> {
+  const user = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } });
+  if (!user?.passwordHash || !(await verifyPassword(password, user.passwordHash))) {
+    throw new Error("E-Mail oder Passwort ist falsch.");
+  }
+  return startSession(user);
 }
 
 /** Abmelden: Cookie löschen. */
@@ -49,11 +70,23 @@ export async function signOut(): Promise<void> {
 }
 
 export function homeFor(role: Role): string {
-  return role === "TRAINER" ? "/trainer" : "/spieler";
+  if (role === "TRAINER") return "/trainer";
+  if (role === "CASHIER") return "/kasse";
+  return "/spieler";
 }
 
-/** Welche Bereiche eine Rolle sehen darf (Navigation). */
+/** Welche Bereiche eine Rolle sehen darf (Navigation). Muss zu den requireRole-Aufrufen der Seiten passen. */
 export function areasFor(role: Role): { href: string; label: string }[] {
-  if (role === "TRAINER") return [{ href: "/trainer", label: "Trainings" }];
+  if (role === "TRAINER")
+    return [
+      { href: "/trainer", label: "Trainings" },
+      { href: "/kasse", label: "Teamkasse" },
+      { href: "/protokoll", label: "Protokoll" },
+    ];
+  if (role === "CASHIER")
+    return [
+      { href: "/kasse", label: "Teamkasse" },
+      { href: "/protokoll", label: "Protokoll" },
+    ];
   return [{ href: "/spieler", label: "Mein Bereich" }];
 }
