@@ -6,17 +6,18 @@
 
 | Schicht | Name in den Diagrammen | Codename | Datei im Code |
 | --- | --- | --- | --- |
-| 1 Präsentation | Einloggen | Seite `/` | `src/app/page.tsx` |
+| 1 Präsentation | Einloggen & Registrieren | Seiten `/`, `/registrieren` | `src/app/page.tsx`, `src/app/registrieren/page.tsx` |
 | 1 Präsentation | Spieler-Ansicht | Seite `/spieler` | `src/app/spieler/page.tsx` |
-| 1 Präsentation | Trainer-Dashboard | Seiten `/trainer`, `/trainer/training/[id]` | `src/app/trainer/…` |
-| 1 Präsentation | Kassenwart-Ansicht (geplant P4) | – | – |
+| 1 Präsentation | Trainer-Dashboard | Seiten `/trainer`, `/trainer/neu`, `/trainer/training/[id]` | `src/app/trainer/…` |
+| 1 Präsentation | Kassenwart-Ansicht | Seite `/kasse` | `src/app/kasse/page.tsx` |
+| 1 Präsentation | Protokoll-Ansicht | Seite `/protokoll` | `src/app/protokoll/page.tsx` |
 | 2 Anwendung | Eingaben verarbeiten | Server Actions (Klasse `ServerActions`) | `src/app/actions.ts` |
 | 2 Anwendung | Einloggen & Rollenprüfung | Auth | `src/lib/auth.ts` |
-| 2 Anwendung | Registrierung (geplant P4) | Supabase Auth | – |
+| 2 Anwendung | Registrierung | Registration | `src/lib/registration.ts` (Passwort-Hash: `src/lib/password.ts`) |
 | 3 Services | Zu-/Absagen & Anwesenheit | AttendanceService | `src/services/attendanceService.ts` |
 | 3 Services | Strafen vorschlagen & freigeben | PenaltyEngine | `src/services/penaltyEngine.ts` |
 | 3 Services | Protokollierung | AuditService | `src/services/auditService.ts` |
-| 3 Services | Zahlungen verbuchen (geplant P4) | – | – |
+| 3 Services | Zahlungen verbuchen | PaymentService | `src/services/paymentService.ts` |
 | 4 Fachlogik | Regelverwaltung | Penalties | `src/domain/penalties.ts` |
 | 5 Datenzugriff | Datenbankzugriff | Prisma Client | `src/lib/db.ts` |
 | – | Datenbank | PostgreSQL (Supabase) | `prisma/schema.prisma` |
@@ -34,7 +35,7 @@ Die fünf Schichten sind dieselben wie auf der Folie „Schichtenarchitektur“ 
 | Strafe eines Spielers | `PenaltyEntry` | `PENALTY_ENTRY` |
 | Protokolleintrag (Audit-Log) | `AuditLog` | `AUDIT_LOG` |
 
-Die Tabellennamen im ER-Modell sind die Prisma-Modellnamen in Großbuchstaben mit Unterstrich. Beziehungsnamen sind in Klassendiagramm und ER-Modell gleich: *meldet, hat, erstellt, schuldet, legt an, Grundlage, Anlass, Verlauf, Akteur*.
+Die Tabellennamen im ER-Modell sind die Prisma-Modellnamen in Großbuchstaben mit Unterstrich. Beziehungsnamen sind in Klassendiagramm und ER-Modell gleich: *meldet, hat, erstellt, schuldet, legt an, Grundlage, Anlass, Verlauf, Anwesenheitsverlauf, Akteur*.
 
 ## Zustände einer Strafe (Zustandsautomat, Code, Datenbank)
 

@@ -1,6 +1,6 @@
 # Architekturbegründung
 
-> Stand 09.11.2026, nach dem P3-Feedback überarbeitet: Die fünf Schichten und ihre Komponenten sind genau die aus dem [Komponentendiagramm](komponenten.md); Namen siehe [Namensliste](namensliste.md).
+> Stand P4, 09.11.2026 (nach dem P3-Feedback überarbeitet, seit P4 ohne geplante Komponenten): Die fünf Schichten und ihre Komponenten sind genau die aus dem [Komponentendiagramm](komponenten.md); Namen siehe [Namensliste](namensliste.md).
 
 ## Entscheidung
 
@@ -8,20 +8,20 @@ SquadHQ ist eine **Client-Server-Webanwendung mit Schichtenarchitektur** (Layere
 
 | Schicht | Komponenten (Codename) | Ordner |
 | --- | --- | --- |
-| 1 Präsentation | Einloggen, Spieler-Ansicht, Trainer-Dashboard; geplant: Kassenwart-Ansicht | `src/app` (Seiten als React Server Components, auf dem Server gerendert, mobile-first) |
-| 2 Anwendung | Eingaben verarbeiten (Server Actions), Einloggen & Rollenprüfung (Auth); geplant: Registrierung | `src/app/actions.ts`, `src/lib/auth.ts` |
-| 3 Services | Zu-/Absagen & Anwesenheit (AttendanceService), Strafen vorschlagen & freigeben (PenaltyEngine), Protokollierung (AuditService); geplant: Zahlungen verbuchen | `src/services` |
-| 4 Fachlogik | Regelverwaltung (Penalties): Strafenkatalog, Fälligkeit, Saldo, reine Funktionen ohne Datenbank | `src/domain` |
+| 1 Präsentation | Einloggen & Registrieren, Spieler-Ansicht, Trainer-Dashboard, Kassenwart-Ansicht, Protokoll-Ansicht | `src/app` (Seiten als React Server Components, auf dem Server gerendert, mobile-first) |
+| 2 Anwendung | Eingaben verarbeiten (Server Actions), Einloggen & Rollenprüfung (Auth), Registrierung (Registration) | `src/app/actions.ts`, `src/lib/auth.ts`, `src/lib/registration.ts` |
+| 3 Services | Zu-/Absagen & Anwesenheit (AttendanceService), Strafen vorschlagen & freigeben (PenaltyEngine), Protokollierung (AuditService), Zahlungen verbuchen (PaymentService) | `src/services` |
+| 4 Fachlogik | Regelverwaltung (Penalties): Strafenkatalog, Fälligkeit, Saldo, Zahlung, überfällig, reine Funktionen ohne Datenbank | `src/domain` |
 | 5 Datenzugriff | Datenbankzugriff (Prisma Client) auf PostgreSQL (Supabase) | `src/lib/db.ts`, `prisma/schema.prisma` |
 
-Abhängigkeiten zeigen nur nach unten, nie nach oben (gelockerte Schichtenarchitektur, *relaxed layering*): Seiten lesen über die Services und schreiben nur über die Server Actions; sie greifen weder auf die Fachlogik noch auf die Datenbank direkt zu. Auth liest die Nutzer direkt über den Datenbankzugriff (überspringt Services und Fachlogik, zeigt aber nach unten). Die Fachlogik hängt von nichts ab. Die frühere Ausnahme (Demo-Anmeldung las die Nutzerliste direkt über Prisma) ist seit 09.11.2026 behoben. Die Komponenten zeigt [komponenten.md](komponenten.md), das Verhalten [sequenz-pen-02.md](sequenz-pen-02.md), den Detailentwurf [klassendiagramm.md](klassendiagramm.md) und das Datenmodell [er-modell.md](er-modell.md).
+Abhängigkeiten zeigen nur nach unten, nie nach oben (gelockerte Schichtenarchitektur, *relaxed layering*): Seiten lesen über die Services und schreiben nur über die Server Actions; sie greifen weder auf die Fachlogik noch auf die Datenbank direkt zu. Auth und Registrierung lesen bzw. schreiben die Nutzer direkt über den Datenbankzugriff (überspringt Services und Fachlogik, zeigt aber nach unten). Die Fachlogik hängt von nichts ab. Die frühere Ausnahme (Demo-Anmeldung las die Nutzerliste direkt über Prisma) ist seit 09.11.2026 behoben. Die Komponenten zeigt [komponenten.md](komponenten.md), das Verhalten [sequenz-pen-02.md](sequenz-pen-02.md), den Detailentwurf [klassendiagramm.md](klassendiagramm.md) und das Datenmodell [er-modell.md](er-modell.md).
 
 ## Begründung
 
 | Anforderung / Qualitätsziel | Wie die Architektur es erfüllt |
 | --- | --- |
 | Mobile Nutzung am Spielfeldrand (Interviews Spieler, Trainer) | Web-App statt nativer App: läuft auf jedem Smartphone ohne Installation; Server-Rendering hält die Seiten klein |
-| Nachvollziehbare Kasse (Interview Kassenwart) | Alle Schreibzugriffe laufen über die Service-Schicht; jede Statusänderung einer Strafe wird dort im AuditLog protokolliert; Anwesenheit und Strafe werden in einer Transaktion geschrieben |
+| Nachvollziehbare Kasse (Interview Kassenwart) | Alle Schreibzugriffe laufen über die Service-Schicht; jede Statusänderung einer Strafe, jede Zahlung und jede vom Trainer gesetzte Anwesenheit wird dort im AuditLog protokolliert; Anwesenheit und Strafe werden in einer Transaktion geschrieben |
 | Rechte je Rolle (REQ-SEC-01) | Rollenprüfung zentral in `src/lib/auth.ts`, aufgerufen zu Beginn jeder geschützten Seite (`requireRole`) und Server Action (`assertRole`), nicht verteilt im UI |
 | Testbarkeit (TDD für Kassenlogik, P1) | Fachregeln liegen getrennt von DB und UI in `src/domain` und sind ohne Infrastruktur unit-testbar |
 | Änderbarkeit (Katalog ändert sich jede Saison) | Strafbeträge sind Daten (`PenaltyRule`), nicht Code |
@@ -29,7 +29,7 @@ Abhängigkeiten zeigen nur nach unten, nie nach oben (gelockerte Schichtenarchit
 
 ## Entwurfsprinzipien
 
-- **Information Hiding / Modularisierung** (Parnas 1972): Das UI kennt keine Datenbanktabellen, nur Service-Funktionen. Der Wechsel von der Demo-Anmeldung zu Registrierung und Login mit Supabase Auth betrifft nur die Komponente „Einloggen & Rollenprüfung“ (`src/lib/auth.ts`) und die Seite „Einloggen“, nicht die übrigen Seiten und Services.
+- **Information Hiding / Modularisierung** (Parnas 1972): Das UI kennt keine Datenbanktabellen, nur Service-Funktionen. Das hat sich zu P4 bestätigt: Registrierung und Login mit Passwort kamen hinzu, geändert wurden nur „Einloggen & Rollenprüfung“ (`src/lib/auth.ts`), die neue Komponente „Registrierung“ und die Seite „Einloggen“; die übrigen Seiten und Services blieben unverändert.
 - **Lose Kopplung:** Services sprechen über klar benannte Funktionen miteinander; die PenaltyEngine kennt die UI nicht.
 - **Hohe Kohäsion:** jede Service-Datei hat genau einen fachlichen Zweck (Rückmeldungen, Strafen, Protokoll).
 - **Service Layer** (Fowler 2002): Geschäftsabläufe wie „Anwesenheit setzen und Strafe abgleichen“ liegen an einer Stelle statt in mehreren Seiten.
@@ -42,6 +42,7 @@ Abhängigkeiten zeigen nur nach unten, nie nach oben (gelockerte Schichtenarchit
 | Getrenntes Backend (z. B. Express-REST-API) | mehr Deployments und Schnittstellen-Code ohne Mehrwert bei einem Team und einem Client |
 | Microservices | für 5 Personen und 6 Entitäten unverhältnismäßiger Betriebsaufwand |
 | Supabase direkt aus dem Browser (ohne eigene Service-Schicht) | Geschäftsregeln und Audit-Log wären im Client und damit manipulierbar |
+| Supabase Auth für die Registrierung (P4) | bräuchte zusätzliche Schlüssel in Vercel, E-Mail-Bestätigung und eine zweite Nutzertabelle; eigene Anmeldung mit scrypt-Passwort-Hash in `User` reicht für ein Team und ist ohne Zusatzdienst testbar. Ein späterer Wechsel betrifft wieder nur Auth und Registrierung |
 
 ## Quellen
 

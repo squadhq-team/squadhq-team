@@ -1,6 +1,6 @@
 # Verhalten: Sequenzdiagramm REQ-PEN-02
 
-> Zeigt den Kernablauf: unentschuldigtes Fehlen → Strafvorschlag → Freigabe → Saldo. Seit dem P3-Feedback (09.11.2026) heißen die Teilnehmer genauso wie die Komponenten im [Komponentendiagramm](komponenten.md) (siehe [Namensliste](namensliste.md)); die Übersicht zeigt dieselben Komponenten wie die Detailansicht, nur ohne Funktionsnamen.
+> Zeigt den Kernablauf: unentschuldigtes Fehlen → Strafvorschlag → Freigabe → Saldo, dazu seit P4 die Zahlung beim Kassenwart (eigener Abschnitt unten). Seit dem P3-Feedback (09.11.2026) heißen die Teilnehmer genauso wie die Komponenten im [Komponentendiagramm](komponenten.md) (siehe [Namensliste](namensliste.md)); die Übersicht zeigt dieselben Komponenten wie die Detailansicht, nur ohne Funktionsnamen.
 
 ## Übersicht
 
@@ -20,6 +20,7 @@ sequenceDiagram
   TD->>ACT: Formular senden
   ACT->>ATT: Anwesenheit setzen
   ATT->>DB: Anwesenheit speichern
+  ATT->>AUD: Anwesenheit protokollieren
   ATT->>PEN: Strafe abgleichen
   PEN->>DB: Strafvorschlag 20 € anlegen (wartet auf Freigabe)
   PEN->>AUD: „vorgeschlagen“ protokollieren
@@ -59,7 +60,11 @@ sequenceDiagram
   ACT->>AUTH: assertRole(TRAINER)
   ACT->>ATT: setByTrainer(...)
   activate ATT
-  ATT->>DB: BEGIN, upsert Attendance(status=UNEXCUSED)
+  ATT->>DB: BEGIN, alten Status lesen, upsert Attendance(status=UNEXCUSED)
+  opt Status hat sich geändert
+    ATT->>AUD: logAttendanceChange(alt → UNEXCUSED)
+    AUD->>DB: insert AuditLog (attendanceId)
+  end
   ATT->>PEN: syncPenaltyForAttendance(tx, ...)
   PEN->>DB: Regeln mit trigger=UNEXCUSED_ABSENCE lesen
   PEN->>RULES: suggestRuleForAttendance() → TSVK Pos. 8, 20 €
@@ -115,6 +120,43 @@ sequenceDiagram
   end
 ```
 
+## Sequenzdiagramm Zahlung verbuchen (REQ-PEN-04, MVP-5)
+
+Der Kassenwart verbucht eine freigegebene Strafe mit einem Klick als bar oder per PayPal bezahlt. Mit Betrag wird eine Teilzahlung verbucht.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor K as Kassenwart
+  participant KW as Kassenwart-Ansicht
+  participant ACT as Eingaben verarbeiten<br/>(Server Actions)
+  participant AUTH as Einloggen & Rollenprüfung<br/>(Auth)
+  participant PAY as Zahlungen verbuchen<br/>(PaymentService)
+  participant RULES as Regelverwaltung<br/>(Penalties)
+  participant AUD as Protokollierung<br/>(AuditService)
+  participant DB as Datenbank<br/>(PostgreSQL)
+
+  K->>KW: öffnet /kasse
+  KW->>AUTH: requireRole(CASHIER, TRAINER)
+  KW->>PAY: getTeamCash()
+  PAY->>DB: freigegebene Strafen lesen
+  PAY->>RULES: openAmount(), isOverdue(), weeksOverdue()
+  PAY-->>KW: offene (überfällige zuerst) und bezahlte Strafen, Summen
+  K->>KW: Klick „Bezahlt (bar)“
+  KW->>ACT: payAction(entryId, CASH)
+  ACT->>AUTH: assertRole(CASHIER)
+  ACT->>PAY: recordPayment(entryId, kassenwartId, CASH)
+  activate PAY
+  PAY->>DB: BEGIN, Strafe lesen
+  PAY->>RULES: applyPayment(entry, CASH) → PAID_CASH
+  PAY->>DB: update status, paidCents, method
+  PAY->>AUD: logPenaltyChange(BEZAHLT, „20,00 € bar“)
+  AUD->>DB: insert AuditLog
+  PAY->>DB: COMMIT
+  deactivate PAY
+  ACT-->>KW: Strafe wandert zu „Bezahlte Strafen“
+```
+
 ## Zustandsautomat einer Strafe
 
 ### Übersicht
@@ -124,9 +166,9 @@ stateDiagram-v2
   state "PAID_CASH / PAID_PAYPAL" as PAID
   [*] --> PENDING_APPROVAL: Trainer setzt UNEXCUSED
   PENDING_APPROVAL --> OPEN: Trainer gibt frei
-  OPEN --> PARTIAL: Teilzahlung
-  OPEN --> PAID: bezahlt
-  PARTIAL --> PAID: Rest bezahlt
+  OPEN --> PARTIAL: Kassenwart verbucht Teilzahlung
+  OPEN --> PAID: Kassenwart verbucht Zahlung
+  PARTIAL --> PAID: Kassenwart verbucht Rest
   PENDING_APPROVAL --> CANCELLED: verworfen
   OPEN --> CANCELLED: storniert
   PARTIAL --> CANCELLED: storniert
@@ -141,12 +183,12 @@ stateDiagram-v2
   [*] --> PENDING_APPROVAL: Trainer setzt UNEXCUSED
   PENDING_APPROVAL --> OPEN: Trainer gibt frei
   PENDING_APPROVAL --> CANCELLED: Trainer verwirft / Status nicht mehr UNEXCUSED
-  OPEN --> PARTIAL: Teilzahlung (P4)
-  OPEN --> PAID_CASH: bar bezahlt (P4)
-  OPEN --> PAID_PAYPAL: PayPal (P4)
-  PARTIAL --> PARTIAL: weitere Teilzahlung (P4)
-  PARTIAL --> PAID_CASH: Rest bar bezahlt (P4)
-  PARTIAL --> PAID_PAYPAL: Rest per PayPal (P4)
+  OPEN --> PARTIAL: Kassenwart verbucht Teilzahlung
+  OPEN --> PAID_CASH: Kassenwart verbucht bar
+  OPEN --> PAID_PAYPAL: Kassenwart verbucht PayPal
+  PARTIAL --> PARTIAL: weitere Teilzahlung
+  PARTIAL --> PAID_CASH: Rest bar bezahlt
+  PARTIAL --> PAID_PAYPAL: Rest per PayPal
   OPEN --> CANCELLED: Status nachträglich nicht mehr UNEXCUSED
   PARTIAL --> CANCELLED: Status nachträglich nicht mehr UNEXCUSED
   PAID_CASH --> [*]
@@ -154,4 +196,4 @@ stateDiagram-v2
   CANCELLED --> [*]
 ```
 
-Im Saldo zählen nur `OPEN` und `PARTIAL` (Funktion `isOutstanding` in `src/domain/penalties.ts`). Jeder Zustandswechsel wird im `AuditLog` protokolliert. Übergänge mit „(P4)“ sind modelliert, aber erst zu P4 umgesetzt.
+Im Saldo zählen nur `OPEN` und `PARTIAL` (Funktion `isOutstanding` in `src/domain/penalties.ts`). Jeder Zustandswechsel wird im `AuditLog` protokolliert. Seit P4 sind alle Übergänge umgesetzt (Zahlungen: `recordPayment` im PaymentService, Regel `applyPayment` in der Regelverwaltung). Überfällig ist kein eigener Zustand: Eine Strafe in `OPEN` oder `PARTIAL` mit abgelaufener Frist wird in der Kassenwart-Ansicht nur markiert (`isOverdue`); die Mahngebühr von 5 € je Woche wird angezeigt, aber noch nicht automatisch gebucht.
