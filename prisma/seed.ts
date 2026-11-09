@@ -1,5 +1,5 @@
 /**
- * Demo-Daten für den Prototyp (P3).
+ * Demo-Daten für die Präsentationen (Stand P4). Alle Zeiten relativ zum Ladetag, deshalb am Vortag `npm run db:reset`.
  * Strafenkatalog: vollständiger TSVK-Strafenkatalog 2026/27 aus prisma/strafenkatalog.ts
  * (Quelle: docs/anforderungen/strafenkatalog-tsvk-2026-27.md).
  * Personen sind erfunden.
@@ -30,6 +30,7 @@ async function main() {
   await prisma.user.deleteMany();
 
   const trainer = await prisma.user.create({ data: { name: "Jan Petersen", role: "TRAINER", phone: "0151 0000001" } });
+  const cashier = await prisma.user.create({ data: { name: "Karl Brandt", role: "CASHIER", phone: "0151 0000002" } });
   const playerNames = ["Ben Albers", "Can Demir", "Finn Hansen", "Leon Jürgensen", "Luca Möller", "Noah Schmidt", "Paul Thomsen", "Tim Wagner"];
   const players = [];
   for (const name of playerNames) {
@@ -39,6 +40,18 @@ async function main() {
 
   await prisma.penaltyRule.createMany({ data: STRAFENKATALOG });
   const absence = await prisma.penaltyRule.findUniqueOrThrow({ where: { position: 8 } });
+
+  // Training vor zwei Wochen: Pauls Strafe ist überfällig (Frist abgelaufen), Tims Strafe per PayPal bezahlt
+  const twoWeeksAgo = await prisma.trainingSession.create({
+    data: { title: "Mannschaftstraining", startsAt: trainingAt(-14), responseDeadline: trainingAt(-15), location: "Kunstrasen Kronshagen", createdById: trainer.id },
+  });
+  const oldAttendance = await Promise.all(
+    players.map((p) =>
+      prisma.attendance.create({
+        data: { sessionId: twoWeeksAgo.id, userId: p.id, status: p === paul || p === tim ? "UNEXCUSED" : "ATTENDING" },
+      }),
+    ),
+  );
 
   // Vergangenes Training: bereits abgeschlossen, eine Strafe offen, eine bezahlt
   const lastWeek = await prisma.trainingSession.create({
@@ -56,18 +69,44 @@ async function main() {
       { sessionId: lastWeek.id, userId: tim.id, status: "ATTENDING" },
     ],
   });
+  const lastWeekAttendance = await prisma.attendance.findMany({ where: { sessionId: lastWeek.id, status: "UNEXCUSED" } });
+
+  // Freigabe jeweils am Tag nach dem Training, Frist 7 Tage ab Freigabe
+  const paulPenalty = await prisma.penaltyEntry.create({
+    data: { playerId: paul.id, sessionId: twoWeeksAgo.id, ruleId: absence.id, amountCents: 2000, status: "OPEN", dueDate: trainingAt(-6), createdById: trainer.id },
+  });
+  const timPenalty = await prisma.penaltyEntry.create({
+    data: { playerId: tim.id, sessionId: twoWeeksAgo.id, ruleId: absence.id, amountCents: 2000, paidCents: 2000, status: "PAID_PAYPAL", method: "PAYPAL", dueDate: trainingAt(-6), createdById: trainer.id, updatedAt: trainingAt(-10) },
+  });
   const leonPenalty = await prisma.penaltyEntry.create({
-    data: { playerId: leon.id, sessionId: lastWeek.id, ruleId: absence.id, amountCents: 2000, status: "OPEN", dueDate: trainingAt(0), createdById: trainer.id },
+    data: { playerId: leon.id, sessionId: lastWeek.id, ruleId: absence.id, amountCents: 2000, status: "OPEN", dueDate: trainingAt(1), createdById: trainer.id },
   });
   const noahPenalty = await prisma.penaltyEntry.create({
-    data: { playerId: noah.id, sessionId: lastWeek.id, ruleId: absence.id, amountCents: 2000, paidCents: 2000, status: "PAID_CASH", createdById: trainer.id },
+    data: { playerId: noah.id, sessionId: lastWeek.id, ruleId: absence.id, amountCents: 2000, paidCents: 2000, status: "PAID_CASH", method: "CASH", dueDate: trainingAt(1), createdById: trainer.id, updatedAt: trainingAt(-5) },
   });
+
+  // Protokoll passend zu den Daten (MVP-6): Anwesenheit durch den Trainer, Vorschlag, Freigabe, Zahlung
+  const at = (daysFromToday: number, hour: number) => {
+    const d = trainingAt(daysFromToday);
+    d.setHours(hour);
+    return d;
+  };
   await prisma.auditLog.createMany({
     data: [
-      { entryId: leonPenalty.id, actorId: trainer.id, action: "VORGESCHLAGEN", newStatus: "PENDING_APPROVAL" },
-      { entryId: leonPenalty.id, actorId: trainer.id, action: "FREIGEGEBEN", oldStatus: "PENDING_APPROVAL", newStatus: "OPEN" },
-      { entryId: noahPenalty.id, actorId: trainer.id, action: "VORGESCHLAGEN", newStatus: "PENDING_APPROVAL" },
-      { entryId: noahPenalty.id, actorId: trainer.id, action: "FREIGEGEBEN", oldStatus: "PENDING_APPROVAL", newStatus: "OPEN" },
+      ...oldAttendance
+        .filter((a) => a.status === "UNEXCUSED")
+        .map((a) => ({ attendanceId: a.id, actorId: trainer.id, action: "ANWESENHEIT_GESETZT", newAttendance: "UNEXCUSED" as const, createdAt: at(-14, 21) })),
+      { entryId: paulPenalty.id, actorId: trainer.id, action: "VORGESCHLAGEN", newStatus: "PENDING_APPROVAL", createdAt: at(-14, 21) },
+      { entryId: timPenalty.id, actorId: trainer.id, action: "VORGESCHLAGEN", newStatus: "PENDING_APPROVAL", createdAt: at(-14, 21) },
+      { entryId: paulPenalty.id, actorId: trainer.id, action: "FREIGEGEBEN", oldStatus: "PENDING_APPROVAL", newStatus: "OPEN", createdAt: at(-13, 10) },
+      { entryId: timPenalty.id, actorId: trainer.id, action: "FREIGEGEBEN", oldStatus: "PENDING_APPROVAL", newStatus: "OPEN", createdAt: at(-13, 10) },
+      { entryId: timPenalty.id, actorId: cashier.id, action: "BEZAHLT", oldStatus: "OPEN", newStatus: "PAID_PAYPAL", note: "20,00 € per PayPal", createdAt: at(-10, 18) },
+      ...lastWeekAttendance.map((a) => ({ attendanceId: a.id, actorId: trainer.id, action: "ANWESENHEIT_GESETZT", newAttendance: "UNEXCUSED" as const, createdAt: at(-7, 21) })),
+      { entryId: leonPenalty.id, actorId: trainer.id, action: "VORGESCHLAGEN", newStatus: "PENDING_APPROVAL", createdAt: at(-7, 21) },
+      { entryId: noahPenalty.id, actorId: trainer.id, action: "VORGESCHLAGEN", newStatus: "PENDING_APPROVAL", createdAt: at(-7, 21) },
+      { entryId: leonPenalty.id, actorId: trainer.id, action: "FREIGEGEBEN", oldStatus: "PENDING_APPROVAL", newStatus: "OPEN", createdAt: at(-6, 10) },
+      { entryId: noahPenalty.id, actorId: trainer.id, action: "FREIGEGEBEN", oldStatus: "PENDING_APPROVAL", newStatus: "OPEN", createdAt: at(-6, 10) },
+      { entryId: noahPenalty.id, actorId: cashier.id, action: "BEZAHLT", oldStatus: "OPEN", newStatus: "PAID_CASH", note: "20,00 € bar", createdAt: at(-5, 21) },
     ],
   });
 
@@ -101,7 +140,7 @@ async function main() {
     ],
   });
 
-  console.log(`Seed fertig: ${players.length} Spieler, 1 Trainer, 4 Trainings, ${STRAFENKATALOG.length} Katalogregeln.`);
+  console.log(`Seed fertig: ${players.length} Spieler, 1 Trainer, 1 Kassenwart, 5 Trainings, ${STRAFENKATALOG.length} Katalogregeln.`);
 }
 
 main()

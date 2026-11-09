@@ -19,6 +19,9 @@ $$ LANGUAGE plpgsql`,
   `CREATE TRIGGER audit_log_kein_aendern_loeschen BEFORE UPDATE OR DELETE ON "AuditLog" FOR EACH ROW EXECUTE FUNCTION audit_log_nur_anlegen()`,
   `DROP TRIGGER IF EXISTS audit_log_kein_leeren ON "AuditLog"`,
   `CREATE TRIGGER audit_log_kein_leeren BEFORE TRUNCATE ON "AuditLog" FOR EACH STATEMENT EXECUTE FUNCTION audit_log_nur_anlegen()`,
+  // Jeder Eintrag betrifft genau eine Sache: eine Strafe oder eine Anwesenheit
+  `ALTER TABLE "AuditLog" DROP CONSTRAINT IF EXISTS audit_log_genau_ein_bezug`,
+  `ALTER TABLE "AuditLog" ADD CONSTRAINT audit_log_genau_ein_bezug CHECK (num_nonnulls("entryId", "attendanceId") = 1)`,
 ];
 
 export async function applyAuditLogSchutz(prisma: PrismaClient) {

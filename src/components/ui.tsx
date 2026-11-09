@@ -43,3 +43,16 @@ export function penaltyTone(status: string): Tone {
   if (status === "CANCELLED") return "gray";
   return "green";
 }
+
+/** Hinweis bei Fehlern aus einem Formular (kommt als ?fehler=… in der Adresse). */
+export function ErrorNotice({ message }: { message?: string | string[] }) {
+  const text = Array.isArray(message) ? message[0] : message;
+  if (!text) return null;
+  return (
+    <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-200">
+      {text}
+    </p>
+  );
+}
+
+export const inputClass = "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm";

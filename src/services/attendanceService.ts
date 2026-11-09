@@ -5,6 +5,7 @@ import type { AttendanceStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { PLAYER_CHOICES } from "@/domain/penalties";
 import { syncPenaltyForAttendance } from "./penaltyEngine";
+import { logAttendanceChange } from "./auditService";
 
 /** Spieler meldet sich per 1-Klick zurück; erlaubt bis zum Trainingsbeginn. */
 export async function respond(params: { playerId: string; sessionId: string; status: AttendanceStatus; note?: string }) {
@@ -21,21 +22,59 @@ export async function respond(params: { playerId: string; sessionId: string; sta
 
 /**
  * Trainer setzt den tatsächlichen Status nach dem Training.
- * Anwesenheit und Strafvorschlag werden in einer Transaktion geschrieben, damit beides konsistent bleibt.
+ * Anwesenheit, Protokolleintrag (MVP-6) und Strafvorschlag werden in einer Transaktion geschrieben, damit alles konsistent bleibt.
+ * Ein Protokolleintrag entsteht nur, wenn sich der Status wirklich ändert.
  */
 export async function setByTrainer(params: { trainerId: string; sessionId: string; playerId: string; status: AttendanceStatus }) {
   await prisma.$transaction(async (tx) => {
-    await tx.attendance.upsert({
-      where: { sessionId_userId: { sessionId: params.sessionId, userId: params.playerId } },
+    const key = { sessionId_userId: { sessionId: params.sessionId, userId: params.playerId } };
+    const before = await tx.attendance.findUnique({ where: key });
+    const attendance = await tx.attendance.upsert({
+      where: key,
       create: { sessionId: params.sessionId, userId: params.playerId, status: params.status },
       update: { status: params.status },
     });
+    if (before?.status !== params.status) {
+      await logAttendanceChange(tx, {
+        attendanceId: attendance.id,
+        actorId: params.trainerId,
+        oldAttendance: before?.status ?? null,
+        newAttendance: params.status,
+      });
+    }
     await syncPenaltyForAttendance(tx, {
       sessionId: params.sessionId,
       playerId: params.playerId,
       status: params.status,
       actorId: params.trainerId,
     });
+  });
+}
+
+/**
+ * MVP-1: Trainer legt ein Training an. Die Rückmeldefrist liegt standardmäßig 3 Stunden vor Beginn
+ * und darf nicht nach dem Beginn liegen.
+ */
+export async function createSession(params: {
+  trainerId: string;
+  title: string;
+  startsAt: Date;
+  responseDeadline?: Date;
+  location?: string;
+}) {
+  const title = params.title.trim() || "Mannschaftstraining";
+  if (Number.isNaN(params.startsAt.getTime())) throw new Error("Bitte Datum und Uhrzeit angeben.");
+  if (params.startsAt < new Date()) throw new Error("Das Training muss in der Zukunft liegen.");
+  const responseDeadline = params.responseDeadline ?? new Date(params.startsAt.getTime() - 3 * 60 * 60 * 1000);
+  if (responseDeadline > params.startsAt) throw new Error("Die Rückmeldefrist muss vor dem Trainingsbeginn liegen.");
+  return prisma.trainingSession.create({
+    data: {
+      title,
+      startsAt: params.startsAt,
+      responseDeadline,
+      location: params.location?.trim() || null,
+      createdById: params.trainerId,
+    },
   });
 }
 

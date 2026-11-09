@@ -1,4 +1,4 @@
-// Datenmodell SquadHQ (Stand P3)
+// Datenmodell SquadHQ (Stand P4)
 // Quelle der Status-Werte: Feedback-Matrix (docs/interviews/feedback-matrix.md)
 
 generator client {
@@ -49,11 +49,14 @@ enum PenaltyTrigger {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  role      Role
-  phone     String?
-  createdAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  name         String
+  role         Role
+  phone        String?
+  /// Registrierung (P4): E-Mail und Passwort-Hash; Demo-Personen haben keins und melden sich über die Demo-Auswahl an
+  email        String?  @unique
+  passwordHash String?
+  createdAt    DateTime @default(now())
 
   attendances      Attendance[]
   penalties        PenaltyEntry[] @relation("PenaltyPlayer")
@@ -85,8 +88,9 @@ model Attendance {
   note      String?
   updatedAt DateTime         @updatedAt
 
-  session TrainingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  user    User            @relation(fields: [userId], references: [id])
+  session  TrainingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [userId], references: [id])
+  auditLog AuditLog[]
 
   @@unique([sessionId, userId])
 }
@@ -125,19 +129,26 @@ model PenaltyEntry {
   auditLog  AuditLog[]
 }
 
-/// REQ-AUD-01 / Feedback Kassenwart: wer hat wann was eingetragen, geändert oder storniert
+/// REQ-AUD-01 (MVP-6) / Feedback Kassenwart: wer hat wann was eingetragen, geändert, storniert oder bezahlt
+/// Ein Eintrag betrifft entweder eine Strafe (entryId, oldStatus/newStatus)
+/// oder eine vom Trainer gesetzte Anwesenheit (attendanceId, oldAttendance/newAttendance).
 /// Einträge werden nur angelegt, nie geändert oder gelöscht (Datenbank-Trigger, siehe prisma/auditLogSchutz.ts)
 model AuditLog {
-  id        String         @id @default(cuid())
-  entryId   String
-  actorId   String
-  action    String
-  oldStatus PenaltyStatus?
-  newStatus PenaltyStatus
-  note      String?
-  createdAt DateTime       @default(now())
+  id            String            @id @default(cuid())
+  entryId       String?
+  attendanceId  String?
+  actorId       String
+  action        String
+  oldStatus     PenaltyStatus?
+  newStatus     PenaltyStatus?
+  oldAttendance AttendanceStatus?
+  newAttendance AttendanceStatus?
+  note          String?
+  createdAt     DateTime          @default(now())
 
   /// Restrict: eine Strafe mit Protokoll lässt sich nicht löschen, nur stornieren (CANCELLED)
-  entry PenaltyEntry @relation(fields: [entryId], references: [id], onDelete: Restrict)
-  actor User         @relation(fields: [actorId], references: [id])
+  entry      PenaltyEntry? @relation(fields: [entryId], references: [id], onDelete: Restrict)
+  /// Restrict: eine protokollierte Anwesenheit lässt sich nicht löschen
+  attendance Attendance?   @relation(fields: [attendanceId], references: [id], onDelete: Restrict)
+  actor      User          @relation(fields: [actorId], references: [id])
 }
