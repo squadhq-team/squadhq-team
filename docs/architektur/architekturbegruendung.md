@@ -1,18 +1,20 @@
 # Architekturbegründung
 
-> Entwurf für P3. Bitte im Team prüfen und ergänzen.
+> Stand 09.11.2026, nach dem P3-Feedback überarbeitet: Die fünf Schichten und ihre Komponenten sind genau die aus dem [Komponentendiagramm](komponenten.md); Namen siehe [Namensliste](namensliste.md).
 
 ## Entscheidung
 
 SquadHQ ist eine **Client-Server-Webanwendung mit Schichtenarchitektur** (Layered Architecture) innerhalb eines Next.js-Projekts:
 
-1. **Präsentation:** Seiten als React Server Components unter `src/app` (mobile-first, Tailwind); sie werden auf dem Server gerendert, der Browser bekommt fertiges HTML
-2. **Anwendungsschicht:** Server Actions (`src/app/actions.ts`) und Auth (`src/lib/auth.ts`), prüfen Rollen und rufen Services auf
-3. **Service-Schicht:** AttendanceService, PenaltyEngine, AuditService (`src/services`)
-4. **Fachlogik:** reine Funktionen ohne Datenbank (`src/domain`)
-5. **Datenzugriff:** Prisma ORM auf PostgreSQL (Supabase)
+| Schicht | Komponenten (Codename) | Ordner |
+| --- | --- | --- |
+| 1 Präsentation | Einloggen, Spieler-Ansicht, Trainer-Dashboard; geplant: Kassenwart-Ansicht | `src/app` (Seiten als React Server Components, auf dem Server gerendert, mobile-first) |
+| 2 Anwendung | Eingaben verarbeiten (Server Actions), Einloggen & Rollenprüfung (Auth); geplant: Registrierung | `src/app/actions.ts`, `src/lib/auth.ts` |
+| 3 Services | Zu-/Absagen & Anwesenheit (AttendanceService), Strafen vorschlagen & freigeben (PenaltyEngine), Protokollierung (AuditService); geplant: Zahlungen verbuchen | `src/services` |
+| 4 Fachlogik | Regelverwaltung (Penalties): Strafenkatalog, Fälligkeit, Saldo, reine Funktionen ohne Datenbank | `src/domain` |
+| 5 Datenzugriff | Datenbankzugriff (Prisma Client) auf PostgreSQL (Supabase) | `src/lib/db.ts`, `prisma/schema.prisma` |
 
-Abhängigkeiten zeigen nur nach unten, nie nach oben (gelockerte Schichtenarchitektur, *relaxed layering*): Seiten lesen direkt über Services, schreiben aber nur über Server Actions; die Fachlogik hängt von nichts ab. Einzige Ausnahme ist die Demo-Anmeldung, die die Nutzerliste direkt über Prisma liest; sie fällt mit Supabase Auth zu P4 weg. Die Komponenten zeigt [komponenten.md](komponenten.md), das Verhalten [sequenz-pen-02.md](sequenz-pen-02.md), den Detailentwurf [klassendiagramm.md](klassendiagramm.md) und das Datenmodell [er-modell.md](er-modell.md).
+Abhängigkeiten zeigen nur nach unten, nie nach oben (gelockerte Schichtenarchitektur, *relaxed layering*): Seiten lesen über die Services und schreiben nur über die Server Actions; sie greifen weder auf die Fachlogik noch auf die Datenbank direkt zu. Auth liest die Nutzer direkt über den Datenbankzugriff (überspringt Services und Fachlogik, zeigt aber nach unten). Die Fachlogik hängt von nichts ab. Die frühere Ausnahme (Demo-Anmeldung las die Nutzerliste direkt über Prisma) ist seit 09.11.2026 behoben. Die Komponenten zeigt [komponenten.md](komponenten.md), das Verhalten [sequenz-pen-02.md](sequenz-pen-02.md), den Detailentwurf [klassendiagramm.md](klassendiagramm.md) und das Datenmodell [er-modell.md](er-modell.md).
 
 ## Begründung
 
@@ -27,7 +29,7 @@ Abhängigkeiten zeigen nur nach unten, nie nach oben (gelockerte Schichtenarchit
 
 ## Entwurfsprinzipien
 
-- **Information Hiding / Modularisierung** (Parnas 1972): Das UI kennt keine Datenbanktabellen, nur Service-Funktionen. Der Wechsel von Demo-Anmeldung zu Supabase Auth betrifft nur `src/lib/auth.ts` und die Anmeldung (`login` und Startseite), nicht die übrigen Seiten und Services.
+- **Information Hiding / Modularisierung** (Parnas 1972): Das UI kennt keine Datenbanktabellen, nur Service-Funktionen. Der Wechsel von der Demo-Anmeldung zu Registrierung und Login mit Supabase Auth betrifft nur die Komponente „Einloggen & Rollenprüfung“ (`src/lib/auth.ts`) und die Seite „Einloggen“, nicht die übrigen Seiten und Services.
 - **Lose Kopplung:** Services sprechen über klar benannte Funktionen miteinander; die PenaltyEngine kennt die UI nicht.
 - **Hohe Kohäsion:** jede Service-Datei hat genau einen fachlichen Zweck (Rückmeldungen, Strafen, Protokoll).
 - **Service Layer** (Fowler 2002): Geschäftsabläufe wie „Anwesenheit setzen und Strafe abgleichen“ liegen an einer Stelle statt in mehreren Seiten.

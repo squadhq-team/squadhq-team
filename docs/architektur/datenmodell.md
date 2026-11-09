@@ -1,9 +1,7 @@
 # Systemstruktur und Datenmodell
 
 ## Schichten
-- **Frontend:** Next.js, Tailwind, shadcn/ui, mobile-first
-- **Backend:** Server Actions mit AttendanceService, PenaltyEngine, AuditService
-- **Datenbank:** PostgreSQL (Supabase) über Prisma ORM
+Fünf Schichten (Präsentation, Anwendung, Services, Fachlogik, Datenzugriff) mit konkreten Komponenten, siehe [Komponentendiagramm](komponenten.md) und [Namensliste](namensliste.md). Technik: Next.js, Tailwind, Prisma ORM, PostgreSQL (Supabase), mobile-first.
 
 ## Kern-Entitäten
 - **User:** Name, Rolle (TRAINER, CASHIER, PLAYER), Handynummer
@@ -13,4 +11,4 @@
 - **PenaltyEntry:** Betrag, Status (PENDING_APPROVAL, OPEN, PARTIAL, PAID_CASH, PAID_PAYPAL, CANCELLED), Fälligkeit
 - **AuditLog:** EntryID, geändert von, alter Status, neuer Status, Zeitstempel
 
-Detailliertes Modell seit P3: [ER-Modell](er-modell.md), [Klassendiagramm](klassendiagramm.md), [Komponenten](komponenten.md), [Sequenz REQ-PEN-02](sequenz-pen-02.md), [Architekturbegründung](architekturbegruendung.md).
+Detailliertes Modell seit P3: [ER-Modell](er-modell.md), [Klassendiagramm](klassendiagramm.md), [Komponenten](komponenten.md), [Sequenz REQ-PEN-02](sequenz-pen-02.md), [Architekturbegründung](architekturbegruendung.md), [Namensliste](namensliste.md).

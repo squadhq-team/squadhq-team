@@ -29,10 +29,13 @@ npm test                  # Unit-Tests
 Details, Supabase und Vercel: [docs/setup.md](docs/setup.md). Ablauf für die Präsentation: [docs/demo-ablauf.md](docs/demo-ablauf.md).
 
 ## Code-Struktur
-- `src/app` – Seiten (Spieler, Trainer, Demo-Anmeldung) und Server Actions
-- `src/services` – AttendanceService, PenaltyEngine, AuditService
-- `src/domain` – reine Fachlogik (unit-getestet)
-- `src/lib` – Datenbank-Client, Rollenprüfung, Formatierung
+Fünf Schichten, gleiche Namen wie im [Komponentendiagramm](docs/architektur/komponenten.md) (siehe [Namensliste](docs/architektur/namensliste.md)):
+- `src/app` – Präsentation (Seiten Einloggen, Spieler-Ansicht, Trainer-Dashboard) und Server Actions („Eingaben verarbeiten“)
+- `src/lib/auth.ts` – Einloggen & Rollenprüfung
+- `src/services` – Zu-/Absagen & Anwesenheit (AttendanceService), Strafen vorschlagen & freigeben (PenaltyEngine), Protokollierung (AuditService)
+- `src/domain` – Regelverwaltung: Strafenkatalog, Fälligkeit, Saldo (reine Funktionen, unit-getestet)
+- `src/components` – UI-Bausteine, u. a. Buttons mit Lade- und Gespeichert-Anzeige
+- `src/lib` – außerdem Datenbank-Client (Prisma) und Formatierung
 - `prisma` – Datenmodell und Demo-Daten
 - `tests` – Vitest-Tests
 

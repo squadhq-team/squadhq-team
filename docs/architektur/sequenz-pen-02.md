@@ -1,98 +1,117 @@
 # Verhalten: Sequenzdiagramm REQ-PEN-02
 
-> Entwurf für P3. Zeigt den Kernablauf der Demo: unentschuldigtes Fehlen → Strafvorschlag → Freigabe → Saldo.
+> Zeigt den Kernablauf: unentschuldigtes Fehlen → Strafvorschlag → Freigabe → Saldo. Seit dem P3-Feedback (09.11.2026) heißen die Teilnehmer genauso wie die Komponenten im [Komponentendiagramm](komponenten.md) (siehe [Namensliste](namensliste.md)); die Übersicht zeigt dieselben Komponenten wie die Detailansicht, nur ohne Funktionsnamen.
 
 ## Übersicht
 
 ```mermaid
 sequenceDiagram
   actor T as Trainer
-  participant App as SquadHQ (Server)
+  participant TD as Trainer-Dashboard
+  participant ACT as Eingaben verarbeiten
+  participant ATT as Zu-/Absagen & Anwesenheit
+  participant PEN as Strafen vorschlagen & freigeben
+  participant AUD as Protokollierung
   participant DB as Datenbank
+  participant SP as Spieler-Ansicht
   actor S as Spieler
 
-  T->>App: markiert Spieler als "Unentschuldigt"
-  App->>DB: Anwesenheit speichern
-  App->>DB: Strafvorschlag 20 € anlegen (wartet auf Freigabe)
-  App-->>T: Vorschlag wird angezeigt
-  T->>App: gibt Strafe frei
-  App->>DB: Strafe offen, fällig in 7 Tagen, im Protokoll vermerkt
-  S->>App: öffnet sein Kassenkonto
-  App->>DB: offene Strafen lesen
-  App-->>S: Saldo 20,00 €
+  T->>TD: markiert Spieler als „Unentschuldigt“
+  TD->>ACT: Formular senden
+  ACT->>ATT: Anwesenheit setzen
+  ATT->>DB: Anwesenheit speichern
+  ATT->>PEN: Strafe abgleichen
+  PEN->>DB: Strafvorschlag 20 € anlegen (wartet auf Freigabe)
+  PEN->>AUD: „vorgeschlagen“ protokollieren
+  TD-->>T: Vorschlag wird angezeigt
+  T->>TD: gibt Strafe frei
+  TD->>ACT: Formular senden
+  ACT->>PEN: Strafe freigeben
+  PEN->>DB: Strafe offen, fällig in 7 Tagen
+  PEN->>AUD: „freigegeben“ protokollieren
+  S->>SP: öffnet sein Kassenkonto
+  SP->>PEN: Kassenkonto lesen
+  PEN->>DB: Strafen lesen
+  SP-->>S: Saldo 20,00 €
 ```
 
 ## Detailansicht
 
-Derselbe Ablauf mit allen Komponenten und Funktionsaufrufen, inklusive „Verwerfen“ und späterer Stornierung.
+Derselbe Ablauf mit allen Komponenten und Funktionsaufrufen, inklusive „Verwerfen“ und späterer Stornierung. Die Protokollierung schreibt jeden Eintrag in dieselbe Transaktion wie die Statusänderung.
 
 ```mermaid
 sequenceDiagram
   autonumber
   actor T as Trainer
-  participant UI as Trainer-Dashboard
-  participant A as Server Actions
-  participant AS as AttendanceService
-  participant PE as PenaltyEngine
-  participant AU as AuditService
-  participant DB as PostgreSQL
+  participant TD as Trainer-Dashboard
+  participant ACT as Eingaben verarbeiten<br/>(Server Actions)
+  participant AUTH as Einloggen & Rollenprüfung<br/>(Auth)
+  participant ATT as Zu-/Absagen & Anwesenheit<br/>(AttendanceService)
+  participant PEN as Strafen vorschlagen & freigeben<br/>(PenaltyEngine)
+  participant RULES as Regelverwaltung<br/>(Penalties)
+  participant AUD as Protokollierung<br/>(AuditService)
+  participant DB as Datenbank<br/>(PostgreSQL)
   participant SP as Spieler-Ansicht
   actor S as Spieler
 
-  T->>UI: Klick "Unentschuldigt" bei Spieler X
-  UI->>A: setAttendanceAction(sessionId, playerId, UNEXCUSED)
-  A->>A: assertRole(TRAINER)
-  A->>AS: setByTrainer(...)
-  activate AS
-  AS->>DB: BEGIN, upsert Attendance(status=UNEXCUSED)
-  AS->>PE: syncPenaltyForAttendance(tx, ...)
-  PE->>DB: Regel mit trigger=UNEXCUSED_ABSENCE (TSVK Pos. 8, 20 €)
-  PE->>DB: gibt es schon einen offenen Eintrag?
+  T->>TD: Klick „Unentschuldigt“ bei Spieler X
+  TD->>ACT: setAttendanceAction(sessionId, playerId, UNEXCUSED)
+  ACT->>AUTH: assertRole(TRAINER)
+  ACT->>ATT: setByTrainer(...)
+  activate ATT
+  ATT->>DB: BEGIN, upsert Attendance(status=UNEXCUSED)
+  ATT->>PEN: syncPenaltyForAttendance(tx, ...)
+  PEN->>DB: Regeln mit trigger=UNEXCUSED_ABSENCE lesen
+  PEN->>RULES: suggestRuleForAttendance() → TSVK Pos. 8, 20 €
+  PEN->>DB: gibt es schon einen offenen Eintrag?
   alt noch keiner vorhanden
-    PE->>DB: insert PenaltyEntry(status=PENDING_APPROVAL, 20,00 €)
-    PE->>AU: logPenaltyChange(VORGESCHLAGEN)
-    AU->>DB: insert AuditLog
+    PEN->>DB: insert PenaltyEntry(status=PENDING_APPROVAL, 20,00 €)
+    PEN->>AUD: logPenaltyChange(VORGESCHLAGEN)
+    AUD->>DB: insert AuditLog
   end
-  AS->>DB: COMMIT
-  deactivate AS
-  A-->>UI: revalidate → Vorschlag erscheint
+  ATT->>DB: COMMIT
+  deactivate ATT
+  ACT-->>TD: revalidatePath → Vorschlag erscheint
 
   alt Trainer gibt frei
-    T->>UI: Klick "Freigeben"
-    UI->>A: approveAction(entryId)
-    A->>A: assertRole(TRAINER)
-    A->>PE: approvePenalty(entryId, trainerId)
-    PE->>DB: update status=OPEN, dueDate=+7 Tage
-    PE->>AU: logPenaltyChange(FREIGEGEBEN)
-    AU->>DB: insert AuditLog
-    A-->>UI: Vorschlag verschwindet
+    T->>TD: Klick „Freigeben“
+    TD->>ACT: approveAction(entryId)
+    ACT->>AUTH: assertRole(TRAINER)
+    ACT->>PEN: approvePenalty(entryId, trainerId)
+    PEN->>RULES: dueDateFrom(heute) → +7 Tage
+    PEN->>DB: update status=OPEN, dueDate
+    PEN->>AUD: logPenaltyChange(FREIGEGEBEN)
+    AUD->>DB: insert AuditLog
+    ACT-->>TD: Vorschlag verschwindet
   else Trainer verwirft
-    T->>UI: Klick "Verwerfen"
-    UI->>A: discardAction(entryId)
-    A->>A: assertRole(TRAINER)
-    A->>PE: discardPenalty(entryId, trainerId)
-    PE->>DB: update status=CANCELLED
-    PE->>AU: logPenaltyChange(VERWORFEN)
-    AU->>DB: insert AuditLog
-    A-->>UI: Vorschlag verschwindet
+    T->>TD: Klick „Verwerfen“
+    TD->>ACT: discardAction(entryId)
+    ACT->>AUTH: assertRole(TRAINER)
+    ACT->>PEN: discardPenalty(entryId, trainerId)
+    PEN->>DB: update status=CANCELLED
+    PEN->>AUD: logPenaltyChange(VERWORFEN)
+    AUD->>DB: insert AuditLog
+    ACT-->>TD: Vorschlag verschwindet
   end
 
   S->>SP: öffnet /spieler (Kassenkonto)
-  SP->>PE: listPenaltiesForPlayer(playerId)
-  PE->>DB: select PenaltyEntry des Spielers
-  DB-->>PE: Einträge
-  PE-->>SP: Einträge
-  SP->>SP: balance(entries) zählt nur OPEN und PARTIAL
-  SP-->>S: nach Freigabe Saldo 20,00 €, Status "Offen"
+  SP->>AUTH: requireRole(PLAYER)
+  SP->>PEN: getPlayerAccount(playerId)
+  PEN->>DB: select PenaltyEntry des Spielers
+  DB-->>PEN: Einträge
+  PEN->>RULES: balance(entries) zählt nur OPEN und PARTIAL
+  PEN-->>SP: Saldo und sichtbare Einträge
+  SP-->>S: nach Freigabe Saldo 20,00 €, Status „Offen“
 
-  opt später: Trainer setzt EXCUSED (Strafe bereits freigegeben)
-    T->>UI: Klick "Entschuldigt"
-    UI->>A: setAttendanceAction(EXCUSED)
-    A->>AS: setByTrainer(...)
-    AS->>PE: syncPenaltyForAttendance(tx, ...)
-    PE->>DB: update status=CANCELLED
-    PE->>AU: logPenaltyChange(STORNIERT)
-    AU->>DB: insert AuditLog
+  opt später: Trainer setzt „Entschuldigt“ (Strafe bereits freigegeben)
+    T->>TD: Klick „Entschuldigt“
+    TD->>ACT: setAttendanceAction(EXCUSED)
+    ACT->>AUTH: assertRole(TRAINER)
+    ACT->>ATT: setByTrainer(...)
+    ATT->>PEN: syncPenaltyForAttendance(tx, ...)
+    PEN->>DB: update status=CANCELLED
+    PEN->>AUD: logPenaltyChange(STORNIERT)
+    AUD->>DB: insert AuditLog
   end
 ```
 
@@ -110,6 +129,7 @@ stateDiagram-v2
   PARTIAL --> PAID: Rest bezahlt
   PENDING_APPROVAL --> CANCELLED: verworfen
   OPEN --> CANCELLED: storniert
+  PARTIAL --> CANCELLED: storniert
   PAID --> [*]
   CANCELLED --> [*]
 ```

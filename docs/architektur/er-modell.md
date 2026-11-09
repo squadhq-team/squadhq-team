@@ -1,6 +1,6 @@
 # Datenmodell: ER-Diagramm
 
-> Stand P3 (Audit-Log-Schutz seit 03.11.2026), entspricht exakt `prisma/schema.prisma`. PK = Primärschlüssel, FK = Fremdschlüssel, UK = eindeutig, „optional“ = darf leer sein (`?` im Schema).
+> Stand 09.11.2026 (Audit-Log-Schutz seit 03.11.2026), entspricht exakt `prisma/schema.prisma`. PK = Primärschlüssel, FK = Fremdschlüssel, UK = eindeutig, „optional“ = darf leer sein (`?` im Schema).
 
 ## Übersicht
 
@@ -10,10 +10,14 @@ erDiagram
   TRAINING_SESSION ||--o{ ATTENDANCE : "hat"
   USER ||--o{ TRAINING_SESSION : "erstellt"
   USER ||--o{ PENALTY_ENTRY : "schuldet"
+  USER ||--o{ PENALTY_ENTRY : "legt an"
   PENALTY_RULE ||--o{ PENALTY_ENTRY : "Grundlage"
   TRAINING_SESSION |o--o{ PENALTY_ENTRY : "Anlass"
-  PENALTY_ENTRY ||--o{ AUDIT_LOG : "Verlauf"
+  PENALTY_ENTRY ||--|{ AUDIT_LOG : "Verlauf"
+  USER ||--o{ AUDIT_LOG : "Akteur"
 ```
+
+Dieselben sechs Tabellen und neun Beziehungen wie in der Übersicht des [Klassendiagramms](klassendiagramm.md); Namen siehe [Namensliste](namensliste.md).
 
 ## Detailansicht
 
@@ -28,7 +32,7 @@ erDiagram
   USER ||--o{ PENALTY_ENTRY : "legt an"
   PENALTY_RULE ||--o{ PENALTY_ENTRY : "Grundlage"
   TRAINING_SESSION |o--o{ PENALTY_ENTRY : "Anlass"
-  PENALTY_ENTRY ||--o{ AUDIT_LOG : "Verlauf"
+  PENALTY_ENTRY ||--|{ AUDIT_LOG : "Verlauf"
   USER ||--o{ AUDIT_LOG : "Akteur"
 
   USER {
@@ -98,6 +102,7 @@ erDiagram
 | Zahlungsstatus statt Ja/Nein, inkl. `PARTIAL` | bar, PayPal und Teilzahlung (Interview Kassenwart) |
 | `CANCELLED` statt Löschen | Storno bleibt nachvollziehbar (Interview Kassenwart, Akzeptanzkriterium 3) |
 | `AuditLog` nur anlegen, nie ändern oder löschen; per Datenbank-Trigger erzwungen | wer hat wann was geändert (Interview Kassenwart), manipulationssicher (MVP-6, REQ-AUD-01) |
+| jede Strafe hat mindestens einen Protokolleintrag (ER: „eins oder mehr“, Klassendiagramm: `1..*`) | die PenaltyEngine legt Strafe und Eintrag `VORGESCHLAGEN` in derselben Transaktion an; die Datenbank selbst erzwingt das nicht |
 | Strafe mit Protokoll nicht löschbar (`onDelete: Restrict`) | Protokoll darf nicht über die Strafe mitgelöscht werden (REQ-AUD-01) |
 | eine `Attendance` je Spieler und Training (`@@unique`) | 1-Klick-Rückmeldung überschreibt die alte |
 | `note` optional | Absage ohne Rechtfertigungsdruck (Interview Spieler) |

@@ -1,40 +1,66 @@
-# Komponentenmodell (High-Level-Struktur)
+# Komponentenmodell und Schichtenarchitektur
 
-> Entwurf für P3. Verantwortlich: Architektur & Entwurf. Notation: Komponentendiagramm in Anlehnung an UML, gezeichnet als Mermaid-Flowchart (Mermaid hat keinen eigenen UML-Komponententyp, rendert aber direkt auf GitHub).
+> Überarbeitet nach dem P3-Feedback (09.11.2026): Die Kästen tragen jetzt konkrete Namen dessen, was die Komponente tut (z. B. „Einloggen & Rollenprüfung“, „Regelverwaltung“), statt abstrakter Schichtnamen. Komponentendiagramm und Schichtenarchitektur sind **ein und dasselbe Bild**: Die Rahmen sind die fünf Schichten, die Kästen darin die Komponenten. Alle Namen stehen in der [Namensliste](namensliste.md) und sind in allen Diagrammen gleich.
 >
-> **Legende:** Kasten = Komponente, Zylinder = Datenbank, gruppierender Rahmen = Knoten bzw. Schicht, Pfeil = Konnektor (Aufruf in Pfeilrichtung), Pfeilbeschriftung = genutzte Schnittstelle bzw. Protokoll.
+> **Legende:** Rahmen = Schicht (bzw. Knoten), Kasten = Komponente mit Codename in Klammern, Zylinder = Datenbank, Pfeil = Aufruf in Pfeilrichtung (nur von oben nach unten), Pfeilbeschriftung = genutzte Schnittstelle, gestrichelter Kasten = geplant für P4, noch nicht im Code.
 
 ## Übersicht
 
 ```mermaid
-flowchart LR
-  B["Browser<br/>(Smartphone)"]
+flowchart TB
+  B["Browser auf dem Smartphone"]
 
   subgraph Server["Next.js-Server (Vercel)"]
-    P["Präsentation<br/>Seiten: Spieler,<br/>Trainer, Anmeldung"]
-    A["Server Actions"]
-    AUTH["Auth<br/>Rollenprüfung"]
-    S["Service-Schicht<br/>AttendanceService<br/>PenaltyEngine<br/>AuditService"]
-    DOM["Fachlogik<br/>Strafregeln, Saldo"]
-    ORM["Prisma ORM"]
+    direction TB
+    subgraph S1["1 Präsentation (Seiten)"]
+      direction TB
+      P_LOGIN["Einloggen<br/>(Seite /)"]
+      P_SP["Spieler-Ansicht<br/>zu-/absagen, Kassenkonto<br/>(/spieler)"]
+      P_TR["Trainer-Dashboard<br/>Anwesenheit bestätigen,<br/>Strafen freigeben<br/>(/trainer)"]
+      P_KW["Kassenwart-Ansicht<br/>(geplant P4)"]
+    end
+    subgraph S2["2 Anwendung"]
+      direction TB
+      ACT["Eingaben verarbeiten<br/>(Server Actions)"]
+      AUTH["Einloggen & Rollenprüfung<br/>(Auth)"]
+      REG["Registrierung<br/>(geplant P4)"]
+    end
+    subgraph S3["3 Services"]
+      direction TB
+      ATT["Zu-/Absagen & Anwesenheit<br/>(AttendanceService)"]
+      PEN["Strafen vorschlagen & freigeben<br/>(PenaltyEngine)"]
+      AUD["Protokollierung<br/>(AuditService)"]
+      PAY["Zahlungen verbuchen<br/>(geplant P4)"]
+    end
+    subgraph S4["4 Fachlogik"]
+      direction TB
+      RULES["Regelverwaltung<br/>Strafenkatalog, Fälligkeit, Saldo<br/>(Penalties)"]
+    end
+    subgraph S5["5 Datenzugriff"]
+      direction TB
+      ORM["Datenbankzugriff<br/>(Prisma Client)"]
+    end
   end
 
   DB[("PostgreSQL<br/>(Supabase)")]
 
-  B -- "Seite laden" --> P
-  B -- "Formular senden" --> A
-  P -- "Rolle prüfen" --> AUTH
-  A -- "Rolle prüfen" --> AUTH
-  P -- "Daten lesen" --> S
-  A -- "Daten ändern" --> S
-  S -- "Regeln anwenden" --> DOM
-  S -- "Datenzugriff" --> ORM
-  ORM -- "SQL" --> DB
+  B -- "Seite laden,<br/>Formular senden" --> S1
+  S1 -- "Formular senden,<br/>Rolle prüfen" --> S2
+  S1 -- "Daten lesen" --> S3
+  S2 -- "Daten ändern" --> S3
+  S2 -- "Nutzer lesen" --> S5
+  S3 -- "Regeln anwenden" --> S4
+  S3 -- "speichern, lesen" --> S5
+  S5 -- "SQL" --> DB
+  S4 ~~~ S5
+
+  classDef geplant stroke-dasharray: 5 5,fill:#f6f6f6,color:#666
+  class P_KW,REG,PAY geplant
 ```
 
 ## Detailansicht
 
-Dieselbe Struktur mit allen Konnektoren und den genutzten Schnittstellen (Funktionsnamen).
+Dieselben Schichten und Komponenten mit allen Aufrufen und den genutzten Funktionen.
 
 ```mermaid
 flowchart TB
@@ -42,64 +68,75 @@ flowchart TB
 
   subgraph Server["Next.js-Server (Vercel)"]
     direction TB
-    subgraph Praes["Präsentation: Seiten als React Server Components (src/app)"]
-      UI_L["Demo-Anmeldung<br/>/"]
-      UI_S["Spieler-Ansicht<br/>/spieler"]
-      UI_T["Trainer-Dashboard<br/>/trainer, /trainer/training/[id]"]
+    subgraph S1["1 Präsentation (src/app)"]
+      P_LOGIN["Einloggen<br/>src/app/page.tsx"]
+      P_SP["Spieler-Ansicht<br/>src/app/spieler/page.tsx"]
+      P_TR["Trainer-Dashboard<br/>src/app/trainer/…"]
     end
-    ACT["Server Actions<br/>src/app/actions.ts"]
-    AUTH["Auth / Rollenprüfung<br/>src/lib/auth.ts"]
-    subgraph Services["Service-Schicht (src/services)"]
-      ATT["AttendanceService"]
-      PEN["PenaltyEngine"]
-      AUD["AuditService"]
+    subgraph S2["2 Anwendung"]
+      ACT["Eingaben verarbeiten<br/>Server Actions<br/>src/app/actions.ts"]
+      AUTH["Einloggen & Rollenprüfung<br/>Auth<br/>src/lib/auth.ts"]
     end
-    DOM["Fachlogik (rein, ohne DB)<br/>src/domain/penalties.ts"]
-    ORM["Prisma Client<br/>src/lib/db.ts"]
+    subgraph S3["3 Services"]
+      ATT["Zu-/Absagen & Anwesenheit<br/>AttendanceService"]
+      PEN["Strafen vorschlagen & freigeben<br/>PenaltyEngine"]
+      AUD["Protokollierung<br/>AuditService"]
+    end
+    subgraph S4["4 Fachlogik"]
+      RULES["Regelverwaltung<br/>Penalties<br/>src/domain/penalties.ts"]
+    end
+    subgraph S5["5 Datenzugriff"]
+      ORM["Datenbankzugriff<br/>Prisma Client, src/lib/db.ts"]
+    end
   end
 
   DB[("PostgreSQL<br/>(Supabase)")]
 
-  B -- "HTTPS GET (Seite laden)" --> Praes
-  B -- "HTTPS POST (Formular-Submit)<br/>login, logout, respondAction,<br/>setAttendanceAction, approveAction, discardAction" --> ACT
+  B -- "HTTPS GET (Seite laden)" --> S1
+  B -- "HTTPS POST (Formular)" --> ACT
 
-  UI_S -- "requireRole()" --> AUTH
-  UI_T -- "requireRole()" --> AUTH
-  UI_S -- "listUpcomingForPlayer()" --> ATT
-  UI_S -- "listPenaltiesForPlayer()" --> PEN
-  UI_S -- "balance()" --> DOM
-  UI_T -- "listSessions()<br/>getAttendanceList()" --> ATT
-  UI_T -- "listPendingForSession()" --> PEN
-  UI_L -. "Nutzerliste (nur Demo)" .-> ORM
+  P_LOGIN -- "listLoginUsers()" --> AUTH
+  P_SP -- "requireRole()" --> AUTH
+  P_TR -- "requireRole()" --> AUTH
+  P_SP -- "listUpcomingForPlayer()" --> ATT
+  P_SP -- "getPlayerAccount()" --> PEN
+  P_TR -- "listSessions()<br/>getAttendanceList()" --> ATT
+  P_TR -- "listPendingForSession()" --> PEN
 
-  ACT -- "assertRole()" --> AUTH
+  ACT -- "assertRole()<br/>signIn(), signOut()" --> AUTH
   ACT -- "respond()<br/>setByTrainer()" --> ATT
   ACT -- "approvePenalty()<br/>discardPenalty()" --> PEN
-  ACT -. "login: Nutzer suchen (nur Demo)" .-> ORM
+
   ATT -- "syncPenaltyForAttendance()" --> PEN
   PEN -- "logPenaltyChange()" --> AUD
-  ATT -- "PLAYER_CHOICES" --> DOM
-  PEN -- "suggestRuleForAttendance()<br/>dueDateFrom()" --> DOM
+  ATT -- "PLAYER_CHOICES" --> RULES
+  PEN -- "suggestRuleForAttendance()<br/>dueDateFrom(), balance()" --> RULES
+
   AUTH --> ORM
   ATT --> ORM
   PEN --> ORM
   AUD --> ORM
   ORM -- "SQL über TCP" --> DB
+
+  P_SP ~~~ ACT
 ```
 
-Lesend greifen die Seiten direkt auf die Services zu, schreibend nur über Server Actions. Die gestrichelten Pfeile sind die Demo-Anmeldung, die die Nutzerliste ohne Service liest; sie wird zu P4 durch Supabase Auth ersetzt.
+Lesend greifen die Seiten über die Services zu, schreibend nur über die Server Actions. Alle Pfeile zeigen nach unten; eine Schicht darf eine tiefere überspringen (gelockerte Schichtenarchitektur), aber nie nach oben zeigen. Die Seiten kennen weder die Datenbank noch die Fachlogik direkt. Begründung siehe [Architekturbegründung](architekturbegruendung.md).
 
 ## Komponenten und Schnittstellen
 
-| Komponente | Verantwortung | Angebotene Schnittstelle |
-| --- | --- | --- |
-| Demo-Anmeldung | Person aus der Demo-Liste wählen (bis Supabase Auth kommt) | – (UI) |
-| Spieler-Ansicht | Rückmeldung zu Trainings, eigenes Kassenkonto mit Saldo | – (UI) |
-| Trainer-Dashboard | Trainingsübersicht, Anwesenheit bestätigen, Strafvorschläge freigeben | – (UI) |
-| Server Actions | Einstiegspunkt aller Schreibzugriffe, Rollenprüfung, Revalidierung | `login`, `logout`, `respondAction`, `setAttendanceAction`, `approveAction`, `discardAction` |
-| Auth | aktuelle Person ermitteln, Rollen prüfen (REQ-SEC-01) | `getCurrentUser()`, `requireRole()`, `assertRole()`, `homeFor()`, `areasFor()` |
-| AttendanceService | Rückmeldungen speichern, Anwesenheitsliste liefern | `respond()`, `setByTrainer()`, `listUpcomingForPlayer()`, `listSessions()`, `getAttendanceList()` |
-| PenaltyEngine | Strafvorschlag nach Katalog, Freigabe, Verwerfen, Storno | `syncPenaltyForAttendance()`, `approvePenalty()`, `discardPenalty()`, `listPenaltiesForPlayer()`, `listPendingForSession()` |
-| AuditService | unveränderliches Protokoll jeder Statusänderung einer Strafe | `logPenaltyChange()` |
-| Fachlogik | reine Regeln ohne Seiteneffekte, unit-getestet | `suggestRuleForAttendance()`, `isOutstanding()`, `openAmount()`, `balance()`, `dueDateFrom()`, `PLAYER_CHOICES` |
-| Prisma Client | Datenzugriff, Transaktionen | generiert aus `prisma/schema.prisma` |
+| Schicht | Komponente (Codename) | Verantwortung | Angebotene Schnittstelle |
+| --- | --- | --- | --- |
+| 1 Präsentation | Einloggen (`/`) | Person aus der Demo-Liste wählen, bis Registrierung und Login mit Supabase Auth kommen | – (UI) |
+| 1 Präsentation | Spieler-Ansicht (`/spieler`) | Training zu- oder absagen, eigenes Kassenkonto mit Saldo | – (UI) |
+| 1 Präsentation | Trainer-Dashboard (`/trainer`, `/trainer/training/[id]`) | Trainingsübersicht, Anwesenheit bestätigen, Strafvorschläge freigeben oder verwerfen | – (UI) |
+| 1 Präsentation | Kassenwart-Ansicht (geplant P4, MVP-4/5) | alle Strafen, Zahlungen verbuchen | – (UI) |
+| 2 Anwendung | Eingaben verarbeiten (Server Actions) | Einstieg aller Schreibzugriffe: Rolle prüfen, genau einen Service aufrufen, Seite aktualisieren | `login`, `logout`, `respondAction`, `setAttendanceAction`, `approveAction`, `discardAction` |
+| 2 Anwendung | Einloggen & Rollenprüfung (Auth) | an- und abmelden, aktuelle Person ermitteln, Rollen prüfen (REQ-SEC-01) | `listLoginUsers()`, `signIn()`, `signOut()`, `getCurrentUser()`, `requireRole()`, `assertRole()`, `homeFor()`, `areasFor()` |
+| 2 Anwendung | Registrierung (geplant P4) | eigenes Konto mit Supabase Auth anlegen | – |
+| 3 Services | Zu-/Absagen & Anwesenheit (AttendanceService) | Rückmeldungen speichern, Anwesenheit durch den Trainer bestätigen, Anwesenheitsliste liefern | `respond()`, `setByTrainer()`, `listUpcomingForPlayer()`, `listSessions()`, `getAttendanceList()` |
+| 3 Services | Strafen vorschlagen & freigeben (PenaltyEngine) | Strafvorschlag nach Katalog, Freigabe, Verwerfen, Storno, Kassenkonto | `syncPenaltyForAttendance()`, `approvePenalty()`, `discardPenalty()`, `listPenaltiesForPlayer()`, `getPlayerAccount()`, `listPendingForSession()` |
+| 3 Services | Protokollierung (AuditService) | unveränderliches Protokoll jeder Statusänderung einer Strafe (REQ-AUD-01) | `logPenaltyChange()` |
+| 3 Services | Zahlungen verbuchen (geplant P4, MVP-5) | Strafe als bar oder PayPal bezahlt markieren | – |
+| 4 Fachlogik | Regelverwaltung (Penalties, `penalties.ts`) | Regeln des TSVK-Strafenkatalogs ohne Datenbank: welche Strafe greift, Fälligkeit, offener Betrag, Saldo; unit-getestet | `suggestRuleForAttendance()`, `isOutstanding()`, `openAmount()`, `balance()`, `dueDateFrom()`, `PLAYER_CHOICES`, `DUE_DAYS` |
+| 5 Datenzugriff | Datenbankzugriff (Prisma Client) | Lesen, Schreiben, Transaktionen | generiert aus `prisma/schema.prisma` |
