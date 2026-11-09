@@ -25,8 +25,9 @@ cp .env.example .env      # DATABASE_URL / DIRECT_URL eintragen
 npm run db:reset          # Tabellen anlegen und Demo-Daten laden
 npm run dev               # http://localhost:3000
 npm test                  # Unit-Tests
+npm run check             # Lint, Formatierung, Typen und Tests (vor jedem Commit)
 ```
-Details, Supabase und Vercel: [docs/setup.md](docs/setup.md). Ablauf für die Präsentation: [docs/demo-ablauf.md](docs/demo-ablauf.md).
+Details, Supabase und Vercel: [docs/setup.md](docs/setup.md). Regeln für Code, Commits und Reviews: [docs/coding-guidelines.md](docs/coding-guidelines.md). Ablauf für die Präsentation: [docs/demo-ablauf.md](docs/demo-ablauf.md).
 
 ## Code-Struktur
 Fünf Schichten, gleiche Namen wie im [Komponentendiagramm](docs/architektur/komponenten.md) (siehe [Namensliste](docs/architektur/namensliste.md)):
@@ -55,6 +56,7 @@ Details und Gesamtumfang: [docs/anforderungen/features-und-mvps.md](docs/anforde
 - `docs/architektur` – Komponenten, Sequenz, Klassendiagramm, ER-Modell, Architekturbegründung
 - `docs/traceability.md` – Feedback → Anforderung → Code → Test
 - `docs/testing` – Akzeptanzkriterien und Teststrategie
+- `docs/coding-guidelines.md` – Coding-Standards, Commit- und Review-Regeln (automatisch geprüft per GitHub Actions)
 - `docs/team.md` – Rollen und Arbeitsweise
 
 ## Projekt-Board

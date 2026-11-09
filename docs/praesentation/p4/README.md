@@ -11,3 +11,7 @@
 | [5-er-modell.png](diagramme/5-er-modell.png) | Tabellen, [er-modell.md](../../architektur/er-modell.md) |
 
 Was sich gegenüber P3 geändert hat und warum: [P3-Feedback und Umsetzung](../../management/p3-feedback-umsetzung.md). Alle Namen: [Namensliste](../../architektur/namensliste.md).
+
+## Coding-Standards
+
+[coding-standards.png](coding-standards.png): Folienbild, Stichpunkte und Sprechtext in [coding-standards.md](coding-standards.md). Ausführlich: [Coding-Guidelines](../../coding-guidelines.md).

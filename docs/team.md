@@ -11,6 +11,7 @@
 - Scrum mit Sprints im Zwei-Wochen-Takt, passend zu den Präsentationen
 - Aufgaben als GitHub Issues im [Sprint-Board](https://github.com/users/Kirillv2/projects/1) (Backlog, Todo, In Progress, Done)
 - Priorisierung nach MoSCoW
+- Coding-Standards, Commit- und Review-Regeln: [coding-guidelines.md](coding-guidelines.md)
 
 ## Meilensteine
 | Termin | Ziel |

@@ -45,5 +45,6 @@ Ist das Audit-Log geschützt, lassen sich Protokolleinträge nicht mehr löschen
 ## Tests
 ```bash
 npm test                                  # Unit-Tests
+npm run check                             # Lint, Formatierung, Typen und Tests wie in der CI (siehe docs/coding-guidelines.md)
 RUN_DB_TESTS=1 npm test                   # zusätzlich Ablauftests gegen die DB in DATABASE_URL (nur Test-DB, nicht Supabase-Live: Testdaten bleiben wegen des Audit-Log-Schutzes stehen)
 ```
