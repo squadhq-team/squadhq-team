@@ -4,7 +4,14 @@ import { balance } from "@/domain/penalties";
 import { listUpcomingForPlayer } from "@/services/attendanceService";
 import { listPenaltiesForPlayer } from "@/services/penaltyEngine";
 import { Badge, Card, attendanceTone, penaltyTone } from "@/components/ui";
+import { ActionForm, SubmitButton } from "@/components/SubmitButton";
 import { respondAction } from "../actions";
+
+const PLAYER_BUTTONS = [
+  { status: "ATTENDING", label: "Dabei", className: "bg-emerald-600 hover:bg-emerald-700" },
+  { status: "EXCUSED", label: "Fehle entschuldigt", className: "bg-sky-600 hover:bg-sky-700" },
+  { status: "UNSURE", label: "Noch unsicher", className: "bg-amber-500 hover:bg-amber-600" },
+] as const;
 
 /** Spieler-Ansicht: 1-Klick-Rückmeldung (REQ-ATT-01) und eigenes Kassenkonto (REQ-PEN-03). */
 export default async function PlayerPage() {
@@ -34,7 +41,7 @@ export default async function PlayerPage() {
                   </div>
                   <Badge tone={attendanceTone(mine?.status)}>{mine ? ATTENDANCE_LABEL[mine.status] : "Keine Antwort"}</Badge>
                 </div>
-                <form action={respondAction} className="mt-3 space-y-2">
+                <ActionForm action={respondAction} className="mt-3 space-y-2">
                   <input type="hidden" name="sessionId" value={s.id} />
                   <input
                     name="note"
@@ -42,18 +49,20 @@ export default async function PlayerPage() {
                     placeholder="Grund (optional)"
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                   />
-                  <div className="grid grid-cols-3 gap-2 text-sm font-medium">
-                    <button name="status" value="ATTENDING" className="rounded-lg bg-emerald-600 px-2 py-2.5 text-white hover:bg-emerald-700">
-                      Dabei
-                    </button>
-                    <button name="status" value="EXCUSED" className="rounded-lg bg-sky-600 px-2 py-2.5 text-white hover:bg-sky-700">
-                      Fehle entschuldigt
-                    </button>
-                    <button name="status" value="UNSURE" className="rounded-lg bg-amber-500 px-2 py-2.5 text-white hover:bg-amber-600">
-                      Noch unsicher
-                    </button>
+                  <div className="grid grid-cols-3 gap-2 text-sm font-medium text-white">
+                    {PLAYER_BUTTONS.map((c) => (
+                      <SubmitButton
+                        key={c.status}
+                        name="status"
+                        value={c.status}
+                        current={mine?.status ?? null}
+                        className={`rounded-lg px-2 py-2.5 ${c.className}`}
+                      >
+                        {c.label}
+                      </SubmitButton>
+                    ))}
                   </div>
-                </form>
+                </ActionForm>
               </li>
             );
           })}

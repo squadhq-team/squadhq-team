@@ -4,6 +4,7 @@ import { ATTENDANCE_LABEL, formatDateTime, formatEuro } from "@/lib/format";
 import { getAttendanceList } from "@/services/attendanceService";
 import { listPendingForSession } from "@/services/penaltyEngine";
 import { Badge, Card, attendanceTone } from "@/components/ui";
+import { ActionForm, SubmitButton } from "@/components/SubmitButton";
 import { approveAction, discardAction, setAttendanceAction } from "../../../actions";
 
 const TRAINER_CHOICES = [
@@ -44,16 +45,20 @@ export default async function TrainingPage({ params }: { params: Promise<{ id: s
                   </p>
                 </div>
                 <div className="flex gap-2 text-sm font-medium">
-                  <form action={approveAction}>
+                  <ActionForm action={approveAction}>
                     <input type="hidden" name="entryId" value={p.id} />
                     <input type="hidden" name="sessionId" value={session.id} />
-                    <button className="rounded-lg bg-emerald-700 px-3 py-2 text-white hover:bg-emerald-800">Freigeben</button>
-                  </form>
-                  <form action={discardAction}>
+                    <SubmitButton className="rounded-lg bg-emerald-700 px-3 py-2 text-white hover:bg-emerald-800">
+                      Freigeben
+                    </SubmitButton>
+                  </ActionForm>
+                  <ActionForm action={discardAction}>
                     <input type="hidden" name="entryId" value={p.id} />
                     <input type="hidden" name="sessionId" value={session.id} />
-                    <button className="rounded-lg bg-gray-200 px-3 py-2 hover:bg-gray-300">Verwerfen</button>
-                  </form>
+                    <SubmitButton className="rounded-lg bg-gray-200 px-3 py-2 hover:bg-gray-300">
+                      Verwerfen
+                    </SubmitButton>
+                  </ActionForm>
                 </div>
               </li>
             ))}
@@ -73,20 +78,21 @@ export default async function TrainingPage({ params }: { params: Promise<{ id: s
                 <Badge tone={attendanceTone(attendance?.status)}>{attendance ? ATTENDANCE_LABEL[attendance.status] : "Keine Antwort"}</Badge>
               </div>
               {isPast && (
-                <form action={setAttendanceAction} className="mt-2 grid grid-cols-3 gap-2 text-xs font-medium text-white sm:text-sm">
+                <ActionForm action={setAttendanceAction} className="mt-2 grid grid-cols-3 gap-2 text-xs font-medium text-white sm:text-sm">
                   <input type="hidden" name="sessionId" value={session.id} />
                   <input type="hidden" name="playerId" value={player.id} />
                   {TRAINER_CHOICES.map((c) => (
-                    <button
+                    <SubmitButton
                       key={c.status}
                       name="status"
                       value={c.status}
-                      className={`rounded-lg px-1 py-2 ${c.className} ${attendance?.status === c.status ? "ring-2 ring-offset-1 ring-gray-900" : "opacity-80"}`}
+                      current={attendance?.status ?? null}
+                      className={`rounded-lg px-1 py-2 ${c.className}`}
                     >
                       {c.label}
-                    </button>
+                    </SubmitButton>
                   ))}
-                </form>
+                </ActionForm>
               )}
             </li>
           ))}
