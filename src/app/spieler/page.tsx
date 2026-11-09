@@ -1,8 +1,7 @@
 import { requireRole } from "@/lib/auth";
 import { ATTENDANCE_LABEL, PENALTY_LABEL, formatDateTime, formatEuro } from "@/lib/format";
-import { balance } from "@/domain/penalties";
 import { listUpcomingForPlayer } from "@/services/attendanceService";
-import { listPenaltiesForPlayer } from "@/services/penaltyEngine";
+import { getPlayerAccount } from "@/services/penaltyEngine";
 import { Badge, Card, attendanceTone, penaltyTone } from "@/components/ui";
 import { ActionForm, SubmitButton } from "@/components/SubmitButton";
 import { respondAction } from "../actions";
@@ -16,9 +15,9 @@ const PLAYER_BUTTONS = [
 /** Spieler-Ansicht: 1-Klick-Rückmeldung (REQ-ATT-01) und eigenes Kassenkonto (REQ-PEN-03). */
 export default async function PlayerPage() {
   const user = await requireRole("PLAYER");
-  const [sessions, penalties] = await Promise.all([listUpcomingForPlayer(user.id), listPenaltiesForPlayer(user.id)]);
-  const saldo = balance(penalties);
-  const visible = penalties.filter((p) => p.status !== "PENDING_APPROVAL" && p.status !== "CANCELLED");
+  const [sessions, account] = await Promise.all([listUpcomingForPlayer(user.id), getPlayerAccount(user.id)]);
+  const saldo = account.saldoCents;
+  const visible = account.entries;
 
   return (
     <>

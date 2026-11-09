@@ -4,7 +4,7 @@
  */
 import type { AttendanceStatus } from "@prisma/client";
 import { prisma, type Tx } from "@/lib/db";
-import { dueDateFrom, suggestRuleForAttendance } from "@/domain/penalties";
+import { balance, dueDateFrom, suggestRuleForAttendance } from "@/domain/penalties";
 import { logPenaltyChange } from "./auditService";
 
 /**
@@ -86,6 +86,18 @@ export function listPenaltiesForPlayer(playerId: string) {
     include: { rule: true, session: true },
     orderBy: { createdAt: "desc" },
   });
+}
+
+/**
+ * REQ-PEN-03: Kassenkonto eines Spielers für die Spieler-Ansicht.
+ * Sichtbar sind nur freigegebene Strafen (keine Vorschläge, keine stornierten); der Saldo zählt nur OPEN und PARTIAL.
+ */
+export async function getPlayerAccount(playerId: string) {
+  const entries = await listPenaltiesForPlayer(playerId);
+  return {
+    saldoCents: balance(entries),
+    entries: entries.filter((p) => p.status !== "PENDING_APPROVAL" && p.status !== "CANCELLED"),
+  };
 }
 
 /** Offene Vorschläge eines Trainings für die Freigabe im Trainer-Dashboard. */

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { listLoginUsers } from "@/lib/auth";
 import { ROLE_LABEL } from "@/lib/format";
 import { Card } from "@/components/ui";
 import { ActionForm, SubmitButton } from "@/components/SubmitButton";
@@ -6,7 +6,7 @@ import { login } from "./actions";
 
 /** Demo-Anmeldung: Rolle per Klick wählen (Prototyp, ersetzt später Supabase Auth). */
 export default async function LoginPage() {
-  const users = await prisma.user.findMany({ orderBy: [{ role: "asc" }, { name: "asc" }] });
+  const users = await listLoginUsers();
   return (
     <>
       <div>

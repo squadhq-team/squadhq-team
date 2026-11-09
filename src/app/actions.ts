@@ -3,23 +3,20 @@
  * Server Actions: dünne Schicht zwischen UI und Services.
  * Jede Action prüft zuerst die Rolle (REQ-SEC-01) und ruft dann genau einen Service auf.
  */
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import type { AttendanceStatus } from "@prisma/client";
-import { prisma } from "@/lib/db";
-import { SESSION_COOKIE, assertRole, homeFor } from "@/lib/auth";
+import { assertRole, homeFor, signIn, signOut } from "@/lib/auth";
 import { respond, setByTrainer } from "@/services/attendanceService";
 import { approvePenalty, discardPenalty } from "@/services/penaltyEngine";
 
 export async function login(formData: FormData) {
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: String(formData.get("userId")) } });
-  (await cookies()).set(SESSION_COOKIE, user.id, { httpOnly: true, sameSite: "lax", path: "/" });
+  const user = await signIn(String(formData.get("userId")));
   redirect(homeFor(user.role));
 }
 
 export async function logout() {
-  (await cookies()).delete(SESSION_COOKIE);
+  await signOut();
   redirect("/");
 }
 

@@ -31,6 +31,23 @@ export async function assertRole(...roles: Role[]): Promise<User> {
   return user;
 }
 
+/** Demo-Anmeldung: alle Personen zur Auswahl (wird mit Supabase Auth durch Registrierung/Login ersetzt). */
+export function listLoginUsers(): Promise<User[]> {
+  return prisma.user.findMany({ orderBy: [{ role: "asc" }, { name: "asc" }] });
+}
+
+/** Demo-Anmeldung: merkt sich die gewählte Person im Cookie und liefert sie zurück. */
+export async function signIn(userId: string): Promise<User> {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+  (await cookies()).set(SESSION_COOKIE, user.id, { httpOnly: true, sameSite: "lax", path: "/" });
+  return user;
+}
+
+/** Abmelden: Cookie löschen. */
+export async function signOut(): Promise<void> {
+  (await cookies()).delete(SESSION_COOKIE);
+}
+
 export function homeFor(role: Role): string {
   return role === "TRAINER" ? "/trainer" : "/spieler";
 }
