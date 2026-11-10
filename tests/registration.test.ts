@@ -1,9 +1,10 @@
 /**
- * Unit-Tests für Registrierung, Passwörter, Rollen-Navigation und Eingabe der Trainingszeit (P4).
+ * Unit-Tests für Registrierung, signierte Demo-Cookies, Fehlermeldungen von Supabase Auth,
+ * Rollen-Navigation und Eingabe der Trainingszeit.
  */
 import { describe, expect, it } from "vitest";
-import { validateRegistration } from "@/lib/registration";
-import { hashPassword, verifyPassword } from "@/lib/password";
+import { translateAuthError, validateNewPassword, validateRegistration } from "@/lib/registration";
+import { sign, verify } from "@/lib/signedCookie";
 import { areasFor, homeFor } from "@/lib/auth";
 import { parseBerlinDateTime } from "@/lib/format";
 
@@ -19,17 +20,36 @@ describe("validateRegistration", () => {
     expect(validateRegistration({ ...valid, passwordRepeat: "anders123" })).toMatch(/stimmen nicht/));
 });
 
-describe("Passwörter", () => {
-  it("speichert nie das Klartext-Passwort und erkennt das richtige Passwort", async () => {
-    const stored = await hashPassword("geheim123");
-    expect(stored).not.toContain("geheim123");
-    expect(await verifyPassword("geheim123", stored)).toBe(true);
-    expect(await verifyPassword("falsch123", stored)).toBe(false);
+describe("validateNewPassword (Passwort vergessen)", () => {
+  it("akzeptiert gleiche Passwörter ab 8 Zeichen", () =>
+    expect(validateNewPassword("geheim123", "geheim123")).toBeNull());
+  it("lehnt zu kurze Passwörter ab", () => expect(validateNewPassword("kurz", "kurz")).toMatch(/8 Zeichen/));
+});
+
+describe("signierte Demo-Cookies", () => {
+  const secret = "test-geheimnis";
+
+  it("liefert den Wert bei gültiger Signatur zurück", () => {
+    expect(verify(sign("user123", secret), secret)).toBe("user123");
   });
 
-  it("erzeugt für dasselbe Passwort unterschiedliche Hashes (Salt)", async () => {
-    expect(await hashPassword("geheim123")).not.toBe(await hashPassword("geheim123"));
+  it("lehnt geänderte Werte, falsche Geheimnisse und unsignierte Cookies ab", () => {
+    const signed = sign("user123", secret);
+    expect(verify(signed.replace("user123", "user999"), secret)).toBeNull();
+    expect(verify(signed, "anderes-geheimnis")).toBeNull();
+    expect(verify("user123", secret)).toBeNull();
+    expect(verify(undefined, secret)).toBeNull();
   });
+});
+
+describe("translateAuthError (Meldungen von Supabase Auth auf Deutsch)", () => {
+  it.each([
+    ["Invalid login credentials", /falsch/],
+    ["Email not confirmed", /bestätige/],
+    ["User already registered", /schon ein Konto/],
+    ["email rate limit exceeded", /Zu viele/],
+    ["something unexpected", /nicht geklappt/],
+  ])("%s", (input, expected) => expect(translateAuthError(input)).toMatch(expected));
 });
 
 describe("Rollen und Bereiche (REQ-SEC-01)", () => {

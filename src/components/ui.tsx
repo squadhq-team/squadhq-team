@@ -59,4 +59,15 @@ export function ErrorNotice({ message }: { message?: string | string[] }) {
   );
 }
 
+/** Erfolgs- oder Hinweismeldung (kommt als ?info=… in der Adresse). */
+export function InfoNotice({ message }: { message?: string | string[] }) {
+  const text = Array.isArray(message) ? message[0] : message;
+  if (!text) return null;
+  return (
+    <p role="status" className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900 ring-1 ring-emerald-200">
+      {text}
+    </p>
+  );
+}
+
 export const inputClass = "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm";

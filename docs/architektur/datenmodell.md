@@ -4,7 +4,7 @@
 Fünf Schichten (Präsentation, Anwendung, Services, Fachlogik, Datenzugriff) mit konkreten Komponenten, siehe [Komponentendiagramm](komponenten.md) und [Namensliste](namensliste.md). Technik: Next.js, Tailwind, Prisma ORM, PostgreSQL (Supabase), mobile-first.
 
 ## Kern-Entitäten
-- **User:** Name, Rolle (TRAINER, CASHIER, PLAYER), Handynummer, E-Mail und Passwort-Hash (seit P4, Registrierung)
+- **User:** Name, Rolle (TRAINER, CASHIER, PLAYER), Handynummer, E-Mail, Verknüpfung zum Konto in Supabase Auth (authId)
 - **TrainingSession:** Datum, Anmelde-Deadline
 - **Attendance:** Status (ATTENDING, EXCUSED, UNEXCUSED, UNSURE), Begründung
 - **PenaltyRule:** Titel, Standardbetrag

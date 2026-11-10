@@ -14,7 +14,7 @@ flowchart TB
     direction TB
     subgraph S1["1 Präsentation (Seiten)"]
       direction TB
-      P_LOGIN["Einloggen & Registrieren<br/>(/, /registrieren)"]
+      P_LOGIN["Einloggen & Registrieren<br/>Passwort vergessen<br/>(/, /registrieren, /passwort-…)"]
       P_SP["Spieler-Ansicht<br/>zu-/absagen, Kassenkonto<br/>(/spieler)"]
       P_TR["Trainer-Dashboard<br/>Training anlegen, Anwesenheit<br/>bestätigen, Strafen freigeben<br/>(/trainer)"]
       P_KW["Kassenwart-Ansicht<br/>Teamkasse, Zahlungen<br/>(/kasse)"]
@@ -44,6 +44,7 @@ flowchart TB
   end
 
   DB[("PostgreSQL<br/>(Supabase)")]
+  SA["Supabase Auth<br/>Konten, Passwörter,<br/>Mails"]
 
   B -- "Seite laden,<br/>Formular senden" --> S1
   S1 -- "Formular senden,<br/>Rolle prüfen" --> S2
@@ -53,6 +54,7 @@ flowchart TB
   S3 -- "Regeln anwenden" --> S4
   S3 -- "speichern, lesen" --> S5
   S5 -- "SQL" --> DB
+  S2 -- "anmelden, registrieren<br/>(HTTPS)" --> SA
   S4 ~~~ S5
 
 ```
@@ -68,7 +70,7 @@ flowchart TB
   subgraph Server["Next.js-Server (Vercel)"]
     direction TB
     subgraph S1["1 Präsentation (src/app)"]
-      P_LOGIN["Einloggen & Registrieren<br/>src/app/page.tsx,<br/>src/app/registrieren/page.tsx"]
+      P_LOGIN["Einloggen & Registrieren<br/>src/app/page.tsx, registrieren,<br/>passwort-vergessen, passwort-neu,<br/>auth/callback"]
       P_SP["Spieler-Ansicht<br/>src/app/spieler/page.tsx"]
       P_TR["Trainer-Dashboard<br/>src/app/trainer/…"]
       P_KW["Kassenwart-Ansicht<br/>src/app/kasse/page.tsx"]
@@ -94,6 +96,7 @@ flowchart TB
   end
 
   DB[("PostgreSQL<br/>(Supabase)")]
+  SA["Supabase Auth<br/>(@supabase/ssr, src/lib/supabase.ts)"]
 
   B -- "HTTPS GET (Seite laden)" --> S1
   B -- "HTTPS POST (Formular)" --> ACT
@@ -110,8 +113,9 @@ flowchart TB
   P_LOG -- "requireRole()" --> AUTH
   P_LOG -- "listAuditLog()" --> AUD
 
-  ACT -- "assertRole(), signIn()<br/>signInWithPassword()<br/>startSession(), signOut()" --> AUTH
+  ACT -- "assertRole(), signIn()<br/>signInWithPassword(), signOut()<br/>requestPasswordReset()<br/>updatePassword()" --> AUTH
   ACT -- "registerUser()" --> REG
+  AUTH -- "ensureAppUser()" --> REG
   ACT -- "respond(), createSession()<br/>setByTrainer()" --> ATT
   ACT -- "approvePenalty()<br/>discardPenalty()" --> PEN
   ACT -- "recordPayment()" --> PAY
@@ -131,6 +135,8 @@ flowchart TB
   PAY --> ORM
   REG --> ORM
   ORM -- "SQL über TCP" --> DB
+  AUTH -- "signInWithPassword(), getUser()<br/>resetPasswordForEmail(), updateUser()" --> SA
+  REG -- "signUp()" --> SA
 
   P_SP ~~~ ACT
 ```
@@ -141,14 +147,15 @@ Lesend greifen die Seiten über die Services zu, schreibend nur über die Server
 
 | Schicht | Komponente (Codename) | Verantwortung | Angebotene Schnittstelle |
 | --- | --- | --- | --- |
-| 1 Präsentation | Einloggen & Registrieren (`/`, `/registrieren`) | mit E-Mail und Passwort anmelden, neues Konto anlegen; für die Präsentation zusätzlich Demo-Anmeldung per Klick | – (UI) |
+| 1 Präsentation | Einloggen & Registrieren (`/`, `/registrieren`, `/passwort-vergessen`, `/passwort-neu`, `/auth/callback`) | mit E-Mail und Passwort anmelden, Konto anlegen, Passwort zurücksetzen, Links aus Mails von Supabase annehmen; für Präsentationen zusätzlich Demo-Anmeldung per Klick (abschaltbar mit `DEMO_LOGIN=off`) | – (UI) |
 | 1 Präsentation | Spieler-Ansicht (`/spieler`) | Training zu- oder absagen, eigenes Kassenkonto mit Saldo | – (UI) |
 | 1 Präsentation | Trainer-Dashboard (`/trainer`, `/trainer/neu`, `/trainer/training/[id]`) | Trainingsübersicht, Training anlegen (MVP-1), Anwesenheit bestätigen, Strafvorschläge freigeben oder verwerfen | – (UI) |
 | 1 Präsentation | Kassenwart-Ansicht (`/kasse`, MVP-4/5) | Teamkasse: offene und bezahlte Strafen, Summen, Überfällige markiert; Zahlungen verbuchen (nur Kassenwart, Trainer liest mit) | – (UI) |
 | 1 Präsentation | Protokoll-Ansicht (`/protokoll`, MVP-6) | Audit-Log lesen (Trainer und Kassenwart) | – (UI) |
-| 2 Anwendung | Eingaben verarbeiten (Server Actions) | Einstieg aller Schreibzugriffe: Rolle prüfen, genau einen Service aufrufen, Seite aktualisieren | `login`, `loginWithPassword`, `registerAction`, `logout`, `respondAction`, `createSessionAction`, `setAttendanceAction`, `approveAction`, `discardAction`, `payAction` |
-| 2 Anwendung | Einloggen & Rollenprüfung (Auth) | an- und abmelden, aktuelle Person ermitteln, Rollen prüfen (REQ-SEC-01) | `listLoginUsers()`, `signIn()`, `signInWithPassword()`, `startSession()`, `signOut()`, `getCurrentUser()`, `requireRole()`, `assertRole()`, `homeFor()`, `areasFor()` |
-| 2 Anwendung | Registrierung (Registration, `registration.ts`) | eigenes Konto mit Name, E-Mail und Passwort anlegen (Rolle Spieler), Passwort nur als scrypt-Hash (`password.ts`) | `validateRegistration()`, `registerUser()` |
+| 2 Anwendung | Eingaben verarbeiten (Server Actions) | Einstieg aller Schreibzugriffe: Rolle prüfen, genau einen Service aufrufen, Seite aktualisieren | `login`, `loginWithPassword`, `registerAction`, `requestPasswordResetAction`, `updatePasswordAction`, `logout`, `respondAction`, `createSessionAction`, `setAttendanceAction`, `approveAction`, `discardAction`, `payAction` |
+| 2 Anwendung | Einloggen & Rollenprüfung (Auth) | an- und abmelden über Supabase Auth bzw. Demo-Anmeldung (signiertes Cookie), Passwort zurücksetzen, aktuelle Person ermitteln, Rollen prüfen (REQ-SEC-01) | `listLoginUsers()`, `signIn()`, `signInWithPassword()`, `signOut()`, `requestPasswordReset()`, `updatePassword()`, `exchangeAuthLink()`, `isEmailLoginEnabled()`, `isDemoLoginEnabled()`, `getCurrentUser()`, `requireRole()`, `assertRole()`, `homeFor()`, `areasFor()` |
+| 2 Anwendung | Registrierung (Registration, `registration.ts`) | Konto bei Supabase Auth anlegen und mit einem Spieler in `User` verknüpfen (`authId`); das Passwort kennt nur Supabase | `validateRegistration()`, `validateNewPassword()`, `registerUser()`, `ensureAppUser()`, `translateAuthError()` |
+| extern | Supabase Auth | Konten, Passwörter, Sitzungs-Cookies, Mails (Bestätigung, Passwort vergessen) | REST-API über `@supabase/ssr` (`src/lib/supabase.ts`, `src/middleware.ts`) |
 | 3 Services | Zu-/Absagen & Anwesenheit (AttendanceService) | Trainings anlegen, Rückmeldungen speichern, Anwesenheit durch den Trainer bestätigen (mit Protokoll), Anwesenheitsliste liefern | `createSession()`, `respond()`, `setByTrainer()`, `listUpcomingForPlayer()`, `listSessions()`, `getAttendanceList()` |
 | 3 Services | Strafen vorschlagen & freigeben (PenaltyEngine) | Strafvorschlag nach Katalog, Freigabe, Verwerfen, Storno, Kassenkonto | `syncPenaltyForAttendance()`, `approvePenalty()`, `discardPenalty()`, `listPenaltiesForPlayer()`, `getPlayerAccount()`, `listPendingForSession()` |
 | 3 Services | Protokollierung (AuditService) | unveränderliches Protokoll jeder Statusänderung einer Strafe und jeder vom Trainer gesetzten Anwesenheit (REQ-AUD-01) | `logPenaltyChange()`, `logAttendanceChange()`, `listAuditLog()` |

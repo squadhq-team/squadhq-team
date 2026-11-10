@@ -53,8 +53,11 @@ model User {
   name         String
   role         Role
   phone        String?
-  /// Registrierung (P4): E-Mail und Passwort-Hash; Demo-Personen haben keins und melden sich über die Demo-Auswahl an
+  /// Anmeldung über Supabase Auth: ID des Kontos in auth.users (UUID). Demo-Personen haben keins.
+  authId       String?  @unique
   email        String?  @unique
+  /// Veraltet seit dem Umstieg auf Supabase Auth (10.11.2026), wird nicht mehr gelesen oder geschrieben.
+  /// Bleibt bis nach P4 stehen, damit ein Zurückrollen auf die vorige App-Version ohne Datenbank-Reset möglich ist.
   passwordHash String?
   createdAt    DateTime @default(now())
 

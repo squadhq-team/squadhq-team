@@ -29,7 +29,7 @@ Abhängigkeiten zeigen nur nach unten, nie nach oben (gelockerte Schichtenarchit
 
 ## Entwurfsprinzipien
 
-- **Information Hiding / Modularisierung** (Parnas 1972): Das UI kennt keine Datenbanktabellen, nur Service-Funktionen. Das hat sich zu P4 bestätigt: Registrierung und Login mit Passwort kamen hinzu, geändert wurden nur „Einloggen & Rollenprüfung“ (`src/lib/auth.ts`), die neue Komponente „Registrierung“ und die Seite „Einloggen“; die übrigen Seiten und Services blieben unverändert.
+- **Information Hiding / Modularisierung** (Parnas 1972): Das UI kennt keine Datenbanktabellen, nur Service-Funktionen. Das hat sich zweimal bestätigt: Zu P4 kamen Registrierung und Login mit Passwort hinzu, am 10.11.2026 der Umstieg auf Supabase Auth. Beide Male änderten sich nur „Einloggen & Rollenprüfung“ (`src/lib/auth.ts`), „Registrierung“ und die Anmeldeseiten; alle übrigen Seiten und Services blieben unverändert.
 - **Lose Kopplung:** Services sprechen über klar benannte Funktionen miteinander; die PenaltyEngine kennt die UI nicht.
 - **Hohe Kohäsion:** jede Service-Datei hat genau einen fachlichen Zweck (Rückmeldungen, Strafen, Protokoll).
 - **Service Layer** (Fowler 2002): Geschäftsabläufe wie „Anwesenheit setzen und Strafe abgleichen“ liegen an einer Stelle statt in mehreren Seiten.
@@ -42,7 +42,7 @@ Abhängigkeiten zeigen nur nach unten, nie nach oben (gelockerte Schichtenarchit
 | Getrenntes Backend (z. B. Express-REST-API) | mehr Deployments und Schnittstellen-Code ohne Mehrwert bei einem Team und einem Client |
 | Microservices | für 5 Personen und 6 Entitäten unverhältnismäßiger Betriebsaufwand |
 | Supabase direkt aus dem Browser (ohne eigene Service-Schicht) | Geschäftsregeln und Audit-Log wären im Client und damit manipulierbar |
-| Supabase Auth für die Registrierung (P4) | bräuchte zusätzliche Schlüssel in Vercel, E-Mail-Bestätigung und eine zweite Nutzertabelle; eigene Anmeldung mit scrypt-Passwort-Hash in `User` reicht für ein Team und ist ohne Zusatzdienst testbar. Ein späterer Wechsel betrifft wieder nur Auth und Registrierung |
+| Eigene Anmeldung mit Passwort-Hash in `User` (P4-Stand bis 10.11.2026) | abgelöst durch Supabase Auth: Passwort vergessen, E-Mail-Bestätigung und sichere Sitzungen bräuchten sonst viel eigenen, sicherheitskritischen Code. Der Wechsel betraf wie vorhergesagt nur Auth, Registrierung und die Anmeldeseiten |
 
 ## Quellen
 

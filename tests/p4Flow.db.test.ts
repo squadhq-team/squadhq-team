@@ -8,8 +8,7 @@ import { prisma } from "@/lib/db";
 import { createSession, setByTrainer } from "@/services/attendanceService";
 import { approvePenalty } from "@/services/penaltyEngine";
 import { getTeamCash, recordPayment } from "@/services/paymentService";
-import { registerUser } from "@/lib/registration";
-import { verifyPassword } from "@/lib/password";
+import { ensureAppUser } from "@/lib/registration";
 import { applyAuditLogSchutz } from "../prisma/auditLogSchutz";
 
 const run = process.env.RUN_DB_TESTS === "1";
@@ -126,18 +125,16 @@ describe.skipIf(!run)("P4-Abläufe (MVP-1, MVP-4, MVP-5, MVP-6, Registrierung)",
     ).rejects.toThrow(/vor dem Trainingsbeginn/);
   });
 
-  it("Registrierung: neues Konto ist Spieler, E-Mail eindeutig, Passwort nur als Hash", async () => {
+  it("Registrierung: Supabase-Konto wird genau einmal als Spieler verknüpft", async () => {
+    const authId = crypto.randomUUID();
     const email = `p4-${Date.now()}@example.org`;
-    const input = {
-      name: "Neu Spieler",
-      email: email.toUpperCase(),
-      password: "geheim123",
-      passwordRepeat: "geheim123",
-    };
-    const user = await registerUser(input);
-    expect(user).toMatchObject({ role: "PLAYER", email });
-    expect(user.passwordHash).not.toContain("geheim123");
-    expect(await verifyPassword("geheim123", user.passwordHash!)).toBe(true);
-    await expect(registerUser(input)).rejects.toThrow(/schon ein Konto/);
+    const user = await ensureAppUser({ id: authId, email: email.toUpperCase(), name: "Neu Spieler" });
+    expect(user).toMatchObject({ authId, email, name: "Neu Spieler", role: "PLAYER" });
+    // erneute Anmeldung: derselbe Nutzer, kein zweiter
+    expect((await ensureAppUser({ id: authId, email })).id).toBe(user.id);
+    // neues Supabase-Konto mit derselben E-Mail: vorhandener Nutzer wird neu verknüpft
+    const newAuthId = crypto.randomUUID();
+    const relinked = await ensureAppUser({ id: newAuthId, email });
+    expect(relinked).toMatchObject({ id: user.id, authId: newAuthId });
   });
 });
