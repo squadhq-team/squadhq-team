@@ -2,12 +2,21 @@
 
 Strukturierte 1-zu-1-Interviews, TSV Kronshagen 1. Herren. Dazu Artefakt-Analyse des TSVK-Strafenkatalogs 2026/27.
 
-| Quelle | Feedback | Konsequenz |
-|---|---|---|
-| Trainer | Unentschuldigten Fehltermin erst bestätigen, bevor automatisch eine Strafe eingetragen wird | Bestätigungsschritt (PENDING_APPROVAL) im Dashboard |
-| Kassenwart | Änderungen müssen nachvollziehbar sein: wer hat eine Strafe eingetragen, geändert oder storniert | Audit-Log je Strafe |
-| Kassenwart | Meist Barzahlung nach dem Training, teils PayPal; Status offen, teilweise bezahlt, bezahlt | Zahlungsstatus OPEN, PARTIAL, PAID_CASH, PAID_PAYPAL |
-| Spieler | Hemmschwelle beim Absagen, Formulieren fällt schwer | 1-Klick-Rückmeldung mit optionalem Grund |
+| Quelle | Feedback | Konsequenz | REQ |
+|---|---|---|---|
+| Trainer | Unentschuldigten Fehltermin erst bestätigen, bevor automatisch eine Strafe eingetragen wird | Bestätigungsschritt (PENDING_APPROVAL) im Dashboard | REQ-PEN-02 |
+| Kassenwart | Änderungen müssen nachvollziehbar sein: wer hat eine Strafe eingetragen, geändert oder storniert | Audit-Log je Strafe | REQ-AUD-01, REQ-PEN-02 |
+| Kassenwart | Meist Barzahlung nach dem Training, teils PayPal; Status offen, teilweise bezahlt, bezahlt | Zahlungsstatus OPEN, PARTIAL, PAID_CASH, PAID_PAYPAL | REQ-PEN-04, REQ-PEN-03 |
+| Spieler | Hemmschwelle beim Absagen, Formulieren fällt schwer | 1-Klick-Rückmeldung mit optionalem Grund | REQ-ATT-01 |
+| Artefakt-Analyse | TSVK-Strafenkatalog 2026/27: unentschuldigtes Fehlen beim Training kostet 20 € (Pos. 8), Zahlungsfrist und Verzugsregel 5 € je Woche | Katalog vollständig als Daten (PenaltyRule), Frist 7 Tage ab Freigabe | REQ-PEN-01, REQ-PEN-03 |
+
+Von jeder Zeile führt die Spalte `REQ` in die [Traceability-Matrix](../traceability.md) (Entwurf, Code, Test).
+
+### Prüfung der Zuordnung (10.11.2026)
+
+- Die ursprüngliche Zuordnung stammt aus P3 (vor den finalen MVPs vom 03.11.2026). Seitdem ist das Audit-Log eine eigene Anforderung (REQ-AUD-01) und das Verbuchen von Zahlungen ebenfalls (REQ-PEN-04, siehe [Features und MVPs](../anforderungen/features-und-mvps.md)). Deshalb zeigt die Kassenwart-Zeile „nachvollziehbar“ jetzt auf REQ-AUD-01 (und REQ-PEN-02, weil Freigabe, Verwerfen und Storno dort protokolliert werden) und die Zeile „Barzahlung, PayPal“ auf REQ-PEN-04 (Verbuchen) und REQ-PEN-03 (Übersicht offen/bezahlt).
+- Die Zeile „Artefakt-Analyse“ ist neu: Der Katalog war schon in P3 Quelle von REQ-PEN-01 (siehe Einleitung oben), stand aber nicht in der Tabelle.
+- Offen: Für REQ-ATT-02 (Trainer-Dashboard) und REQ-SEC-01 (Rollen) nennt die Traceability-Matrix Interview-Aussagen, die hier noch keine eigene Zeile haben. Sie werden ergänzt, sobald die Interview-Notizen dazu vorliegen; erfunden wird hier nichts.
 
 ## Abgeleitete Must-Haves
 REQ-SEC-01, REQ-ATT-01, REQ-ATT-02, REQ-PEN-01, REQ-PEN-02, REQ-PEN-03, REQ-PEN-04, REQ-AUD-01
