@@ -1,4 +1,10 @@
-# P4: Diagramme nach dem P3-Feedback
+# P4-Präsentation (Implementierung & Feedback, 11.11.2026)
+
+- [SquadHQ_P4.pptx](SquadHQ_P4.pptx) zum Bearbeiten (Sprechtexte in den Notizen), [SquadHQ_P4.pdf](SquadHQ_P4.pdf) zum Ansehen und Weiterleiten
+- 10 Folien: Titel, geplant vs. erreicht, Prototyp P3 → heute (Live-Demo nur auf Nachfrage), Architektur ↔ Code, Coding-Standards, Board & Commits, Kundenfeedback, Teststand, nächste Schritte, offene Fragen
+- Live-Demo: [Demo-Ablauf](../../demo-ablauf.md); am Vortag abends `npm run db:reset`
+
+## Diagramme nach dem P3-Feedback
 
 Übersichtsdiagramme für die Folien, gerendert mit Mermaid 11 aus dem Abschnitt „Übersicht“ der Dateien in [docs/architektur](../../architektur). Die Detailansichten stehen nur dort.
 

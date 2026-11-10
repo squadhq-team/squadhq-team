@@ -20,6 +20,18 @@ Von jeder Zeile führt die Spalte `REQ` in die [Traceability-Matrix](../traceabi
 - Die Zeile „Artefakt-Analyse“ ist neu: Der Katalog war schon in P3 Quelle von REQ-PEN-01 (siehe Einleitung oben), stand aber nicht in der Tabelle.
 - Die beiden Trainer-Zeilen zu REQ-ATT-02 und REQ-SEC-01 fehlten bisher, obwohl die Traceability-Matrix sie als Quelle nennt. Sie sind am 10.11.2026 nach der Erinnerung von Kirill Korsun an das Trainer-Interview ergänzt. Schriftliche Interview-Notizen dazu liegen nicht vor, deshalb sind die Aussagen sinngemäß und kein wörtliches Zitat.
 
+## Feedback seit P3 (Feedback-Runde am Prototyp)
+
+Nach P3 (04.11.2026) hat das Team die Live-App (https://squadhq-omega.vercel.app) Spielern, Trainer und Kassenwart der 1. Herren gezeigt. Notiert von Kirill Korsun am 10.11.2026 (sinngemäß, keine schriftlichen Notizen).
+
+| Wer | Wie | Ergebnis | Konsequenz |
+|---|---|---|---|
+| Spieler | Live-App gezeigt | App ist gut und übersichtlich | Spieler-Ansicht bleibt wie sie ist |
+| Trainer | Live-App gezeigt | Gut, dass er sieht, wer zu- oder absagt und mit welchem Grund | bestätigt REQ-ATT-01 und REQ-ATT-02, keine Änderung nötig |
+| Kassenwart | Live-App gezeigt | Gut wegen der Bezahlung (Verbuchen bar, PayPal, Teilzahlung) | bestätigt REQ-PEN-04, keine Änderung nötig |
+
+Konkrete Änderungswünsche gab es nicht. Damit wir beim nächsten Mal messbare Ergebnisse bekommen, lösen die Mitglieder im Nutzertest am 02.12.2026 Aufgaben mit Zeitmessung und füllen den SUS-Fragebogen aus.
+
 ## Abgeleitete Must-Haves
 REQ-SEC-01, REQ-ATT-01, REQ-ATT-02, REQ-PEN-01, REQ-PEN-02, REQ-PEN-03, REQ-PEN-04, REQ-AUD-01
 
