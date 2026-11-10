@@ -25,6 +25,27 @@ npm run dev
    - **Direct connection** bzw. **Session pooler** (Port 5432) als `DIRECT_URL`
 3. In `.env` eintragen und einmal `npm run db:reset` ausführen.
 
+## Anmeldung mit Supabase Auth einrichten (seit 10.11.2026)
+Registrieren, Anmelden und „Passwort vergessen“ laufen über Supabase Auth. Passwörter liegen nur bei Supabase; unsere Tabelle `User` ist über `authId` mit dem Supabase-Konto verknüpft. Neue Konten sind Spieler.
+
+1. **Schlüssel holen:** Supabase → Project Settings → API (bzw. „API Keys“): **Project URL** und **anon public** Key.
+2. **In Vercel eintragen** (Project → Settings → Environment Variables, für Production und Preview):
+   - `SUPABASE_URL` = Project URL, z. B. `https://abcd.supabase.co`
+   - `SUPABASE_ANON_KEY` = anon public Key
+   Lokal dieselben zwei Zeilen in `.env` eintragen.
+3. **Adressen erlauben:** Supabase → Authentication → URL Configuration
+   - Site URL: `https://squadhq-omega.vercel.app`
+   - Redirect URLs: `https://squadhq-omega.vercel.app/**` und `http://localhost:3000/**`
+4. **E-Mail-Bestätigung:** Supabase → Authentication → Sign In / Providers → Email → „Confirm email“.
+   Der eingebaute Mailversand von Supabase schickt nur wenige Mails pro Stunde und ist für Tests gedacht. Solange kein eigener Mailserver (SMTP, z. B. Brevo oder Resend) eingetragen ist, „Confirm email“ **ausschalten**: Dann ist man nach dem Registrieren sofort angemeldet. „Passwort vergessen“ braucht immer eine Mail.
+5. **Optional, empfohlen: Mail-Links auf jedem Gerät gültig machen.** Supabase → Authentication → Emails → Templates. Im Template „Reset Password“ den Link ersetzen durch
+   `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=recovery&next=/passwort-neu`
+   und in „Confirm signup“ durch `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email`.
+   Ohne diese Änderung funktioniert der Link nur im selben Browser, in dem er angefordert wurde.
+6. **Datenbank:** `npm run db:reset` (oder ohne Datenverlust `npx prisma db push` und `npm run db:audit-schutz`). Neu dabei: Spalte `User.authId` und Row Level Security auf allen Tabellen, damit niemand über die REST-Schnittstelle von Supabase an die Tabellen kommt.
+
+Weitere Schalter: `DEMO_LOGIN=off` blendet die Demo-Anmeldung aus (für echte Nutzer). `AUTH_SECRET` signiert das Demo-Cookie (ohne Angabe wird ein Geheimnis aus `DATABASE_URL` abgeleitet). `SITE_URL` legt die Adresse für Links in Mails fest (sonst die aufgerufene Adresse).
+
 ## Auf Vercel deployen
 1. Auf vercel.com mit GitHub anmelden, **Add New → Project**, das Repository `squadhq-team/squadhq-team` importieren.
 2. Unter **Environment Variables** `DATABASE_URL` und `DIRECT_URL` wie oben eintragen.

@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { isEmailLoginEnabled } from "@/lib/auth";
 import { Card, ErrorNotice, inputClass } from "@/components/ui";
 import { ActionForm, SubmitButton } from "@/components/SubmitButton";
 import { registerAction } from "../actions";
 
-/** Registrierung (P4): eigenes Konto anlegen. Neue Konten sind Spieler. */
+/** Registrierung: eigenes Konto bei Supabase Auth anlegen. Neue Konten sind Spieler. */
 export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ fehler?: string }> }) {
   const { fehler } = await searchParams;
   return (
@@ -13,6 +14,11 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
         <p className="text-sm text-gray-600">Du wirst als Spieler angelegt. Trainer und Kassenwart vergibt das Team.</p>
       </div>
       <ErrorNotice message={fehler} />
+      {!isEmailLoginEnabled() && (
+        <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200">
+          Die Registrierung ist auf diesem Server noch nicht eingerichtet.
+        </p>
+      )}
       <Card>
         <ActionForm action={registerAction} className="space-y-3 text-sm">
           <label className="block space-y-1">

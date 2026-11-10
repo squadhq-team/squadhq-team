@@ -2,13 +2,23 @@
 /**
  * Server Actions: dünne Schicht zwischen UI und Services.
  * Jede Action prüft zuerst die Rolle (REQ-SEC-01) und ruft dann genau einen Service auf.
- * Fehler aus Formularen mit Eingaben (Registrierung, Anmelden, Training anlegen, Teilzahlung) werden als
- * Hinweis auf der Seite angezeigt (?fehler=…), statt die Seite abstürzen zu lassen.
+ * Fehler aus Formularen mit Eingaben (Registrierung, Anmelden, Passwort, Training anlegen, Teilzahlung) werden als
+ * Hinweis auf der Seite angezeigt (?fehler=…), Erfolgsmeldungen als ?info=…, statt die Seite abstürzen zu lassen.
  */
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import type { AttendanceStatus } from "@prisma/client";
-import { assertRole, homeFor, signIn, signInWithPassword, signOut, startSession } from "@/lib/auth";
+import { headers } from "next/headers";
+import {
+  assertRole,
+  getCurrentUser,
+  homeFor,
+  requestPasswordReset,
+  signIn,
+  signInWithPassword,
+  signOut,
+  updatePassword,
+} from "@/lib/auth";
 import { registerUser } from "@/lib/registration";
 import { parseBerlinDateTime, parseEuroToCents } from "@/lib/format";
 import type { PaymentMethod } from "@/domain/penalties";
@@ -19,6 +29,16 @@ import { recordPayment } from "@/services/paymentService";
 const text = (formData: FormData, key: string) => formData.get(key)?.toString() ?? "";
 const message = (e: unknown) => (e instanceof Error ? e.message : "Unbekannter Fehler.");
 const withError = (path: string, e: unknown) => `${path}?fehler=${encodeURIComponent(message(e))}`;
+const withInfo = (path: string, info: string) => `${path}?info=${encodeURIComponent(info)}`;
+
+/** Adresse der App (z. B. https://squadhq-omega.vercel.app) für Links in Mails von Supabase. */
+async function siteOrigin(): Promise<string> {
+  if (process.env.SITE_URL) return process.env.SITE_URL.replace(/\/$/, "");
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}`;
+}
 
 /** Demo-Anmeldung per Klick (Präsentation). */
 export async function login(formData: FormData) {
@@ -26,7 +46,7 @@ export async function login(formData: FormData) {
   redirect(homeFor(user.role));
 }
 
-/** Anmeldung mit E-Mail und Passwort. */
+/** Anmeldung mit E-Mail und Passwort (Supabase Auth). */
 export async function loginWithPassword(formData: FormData) {
   let target: string;
   try {
@@ -38,20 +58,58 @@ export async function loginWithPassword(formData: FormData) {
   redirect(target);
 }
 
-/** Registrierung: neues Konto als Spieler anlegen und direkt anmelden. */
+/**
+ * Registrierung: neues Konto bei Supabase Auth, verknüpft mit einem Spieler.
+ * Verlangt Supabase eine E-Mail-Bestätigung, geht es danach über den Link in der Mail weiter.
+ */
 export async function registerAction(formData: FormData) {
   let target: string;
   try {
-    const user = await registerUser({
-      name: text(formData, "name"),
-      email: text(formData, "email"),
-      password: text(formData, "password"),
-      passwordRepeat: text(formData, "passwordRepeat"),
-    });
-    await startSession(user);
-    target = homeFor(user.role);
+    const { user, needsConfirmation } = await registerUser(
+      {
+        name: text(formData, "name"),
+        email: text(formData, "email"),
+        password: text(formData, "password"),
+        passwordRepeat: text(formData, "passwordRepeat"),
+      },
+      `${await siteOrigin()}/auth/callback`,
+    );
+    target = needsConfirmation
+      ? withInfo(
+          "/",
+          "Fast geschafft: Bitte bestätige deine E-Mail-Adresse über den Link in der Mail, die wir dir geschickt haben.",
+        )
+      : homeFor(user.role);
   } catch (e) {
     target = withError("/registrieren", e);
+  }
+  redirect(target);
+}
+
+/** Passwort vergessen: Mail mit Link anfordern. Die Antwort ist immer gleich, damit niemand Konten ausforschen kann. */
+export async function requestPasswordResetAction(formData: FormData) {
+  let target: string;
+  try {
+    await requestPasswordReset(text(formData, "email"), `${await siteOrigin()}/auth/callback?next=/passwort-neu`);
+    target = withInfo(
+      "/",
+      "Wenn es zu dieser E-Mail ein Konto gibt, ist eine Mail mit einem Link zum Zurücksetzen unterwegs. Schau auch im Spam-Ordner nach.",
+    );
+  } catch (e) {
+    target = withError("/passwort-vergessen", e);
+  }
+  redirect(target);
+}
+
+/** Neues Passwort setzen (nach dem Link aus der Mail „Passwort vergessen“). */
+export async function updatePasswordAction(formData: FormData) {
+  let target: string;
+  try {
+    await updatePassword(text(formData, "password"), text(formData, "passwordRepeat"));
+    const user = await getCurrentUser();
+    target = withInfo(user ? homeFor(user.role) : "/", "Dein Passwort ist geändert.");
+  } catch (e) {
+    target = withError("/passwort-neu", e);
   }
   redirect(target);
 }

@@ -58,8 +58,9 @@ classDiagram
     +String name
     +Role role
     +String? phone
+    +String? authId
     +String? email
-    +String? passwordHash
+    +String? passwordHash (veraltet)
     +DateTime createdAt
   }
   class TrainingSession {
@@ -149,6 +150,8 @@ classDiagram
     +login(formData) void
     +loginWithPassword(formData) void
     +registerAction(formData) void
+    +requestPasswordResetAction(formData) void
+    +updatePasswordAction(formData) void
     +logout() void
     +respondAction(formData) void
     +createSessionAction(formData) void
@@ -162,8 +165,12 @@ classDiagram
     +listLoginUsers() User[]
     +signIn(userId) User
     +signInWithPassword(email, password) User
-    +startSession(user) User
     +signOut() void
+    +requestPasswordReset(email, redirectTo) void
+    +updatePassword(password, repeat) void
+    +exchangeAuthLink(code, tokenHash, type) Boolean
+    +isEmailLoginEnabled() Boolean
+    +isDemoLoginEnabled() Boolean
     +getCurrentUser() User?
     +requireRole(roles) User
     +assertRole(roles) User
@@ -202,7 +209,10 @@ classDiagram
   class Registration {
     <<Modul>>
     +validateRegistration(input) String?
-    +registerUser(input) User
+    +validateNewPassword(password, repeat) String?
+    +registerUser(input, confirmRedirectTo) RegistrationResult
+    +ensureAppUser(authUser) User
+    +translateAuthError(message) String
   }
   class Penalties {
     <<Modul>>
@@ -248,14 +258,16 @@ classDiagram
   AuditService ..> AuditLog
   PaymentService ..> PenaltyEntry
   Registration ..> User
+  Auth ..> Registration : nutzt
   Auth ..> User
 ```
 
 Hinweise zum Diagramm:
 
-- Dateien der Module: `ServerActions` = `src/app/actions.ts`, `Auth` = `src/lib/auth.ts`, `Registration` = `src/lib/registration.ts` (Passwort-Hash mit `src/lib/password.ts`), `AttendanceService`, `PenaltyEngine`, `AuditService`, `PaymentService` = `src/services/…`, `Penalties` = `src/domain/penalties.ts` (Regelverwaltung, reine Funktionen ohne Datenbank).
+- Dateien der Module: `ServerActions` = `src/app/actions.ts`, `Auth` = `src/lib/auth.ts`, `Registration` = `src/lib/registration.ts` (Konto bei Supabase Auth, Verknüpfung über `User.authId`), `AttendanceService`, `PenaltyEngine`, `AuditService`, `PaymentService` = `src/services/…`, `Penalties` = `src/domain/penalties.ts` (Regelverwaltung, reine Funktionen ohne Datenbank).
 - Die Abhängigkeiten (gestrichelte Pfeile) zeigen nur nach unten, genau wie im Komponentendiagramm: Server Actions → Services → Regelverwaltung. Die Seiten (Präsentation) sind keine Module mit Operationen und stehen deshalb nur im Komponentendiagramm.
-- `AttendanceList` ist das Ergebnis von `getAttendanceList`: das Training und je Spieler des Kaders seine Rückmeldung (oder keine). `PlayerAccount` ist das Ergebnis von `getPlayerAccount`: Saldo in Cent und die sichtbaren Strafen. `TeamCash` ist das Ergebnis von `getTeamCash`: offene Strafen (mit überfällig und Mahngebühr), bezahlte Strafen, Summen und offene Beträge je Spieler. `PaymentResult` ist der neue Zustand nach einer Zahlung (Status, bezahlter Betrag).
+- `AttendanceList` ist das Ergebnis von `getAttendanceList`: das Training und je Spieler des Kaders seine Rückmeldung (oder keine). `PlayerAccount` ist das Ergebnis von `getPlayerAccount`: Saldo in Cent und die sichtbaren Strafen. `TeamCash` ist das Ergebnis von `getTeamCash`: offene Strafen (mit überfällig und Mahngebühr), bezahlte Strafen, Summen und offene Beträge je Spieler. `PaymentResult` ist der neue Zustand nach einer Zahlung (Status, bezahlter Betrag). `RegistrationResult` ist der neue Nutzer und ob Supabase noch eine E-Mail-Bestätigung verlangt.
+- `User.passwordHash` ist seit dem Umstieg auf Supabase Auth (10.11.2026) veraltet und wird nicht mehr benutzt; die Spalte bleibt bis nach P4 nur stehen, damit ein Zurückrollen ohne Datenbank-Reset möglich ist.
 - Komposition (gefüllte Raute): Wird ein Training gelöscht, werden seine Rückmeldungen mitgelöscht (`onDelete: Cascade` im Schema).
 - `PenaltyEntry` und `AuditLog` sind bewusst nur assoziiert, nicht komponiert: Das Protokoll ist manipulationssicher (REQ-AUD-01). Eine Strafe mit Protokoll lässt sich nicht löschen (`onDelete: Restrict`), nur stornieren (`CANCELLED`); Protokolleinträge selbst lehnt die Datenbank beim Ändern und Löschen ab (Trigger, `prisma/auditLogSchutz.ts`).
 - Ein `AuditLog`-Eintrag betrifft genau eine Sache: eine Strafe (`Verlauf`) **oder** eine vom Trainer gesetzte Anwesenheit (`Anwesenheitsverlauf`). Deshalb `0..1` auf beiden Seiten; die Datenbank erzwingt „genau eins von beiden“ per CHECK-Bedingung (`prisma/auditLogSchutz.ts`). Normale Spieler-Rückmeldungen werden nicht protokolliert.

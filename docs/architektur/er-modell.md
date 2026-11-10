@@ -1,6 +1,6 @@
 # Datenmodell: ER-Diagramm
 
-> Stand P4, 09.11.2026 (Audit-Log-Schutz seit 03.11.2026, Anwesenheit im Protokoll und Registrierung seit P4), entspricht exakt `prisma/schema.prisma`. PK = Primärschlüssel, FK = Fremdschlüssel, UK = eindeutig, „optional“ = darf leer sein (`?` im Schema).
+> Stand P4, 09.11.2026 (Audit-Log-Schutz seit 03.11.2026, Anwesenheit im Protokoll seit P4, Supabase Auth seit 10.11.2026), entspricht exakt `prisma/schema.prisma`. PK = Primärschlüssel, FK = Fremdschlüssel, UK = eindeutig, „optional“ = darf leer sein (`?` im Schema).
 
 ## Übersicht
 
@@ -42,8 +42,9 @@ erDiagram
     string name
     enum role "TRAINER | CASHIER | PLAYER"
     string phone "optional"
-    string email UK "optional, Registrierung"
-    string passwordHash "optional, scrypt-Hash"
+    string authId UK "optional, Konto in Supabase Auth"
+    string email UK "optional"
+    string passwordHash "veraltet, ungenutzt"
     datetime createdAt
   }
   TRAINING_SESSION {
@@ -113,7 +114,8 @@ erDiagram
 | Strafe mit Protokoll nicht löschbar (`onDelete: Restrict`) | Protokoll darf nicht über die Strafe mitgelöscht werden (REQ-AUD-01) |
 | `AuditLog` betrifft genau eine Strafe **oder** eine Anwesenheit (CHECK `audit_log_genau_ein_bezug`) | Trainer-Änderungen an der Anwesenheit kommen ins Protokoll, normale Spieler-Klicks nicht (Entscheidung Team 03.11.) |
 | Zahlungen ohne eigene Tabelle: `paidCents` + `method` an der Strafe, jede Zahlung als Protokolleintrag mit Betrag | reicht für bar, PayPal und Teilzahlung (MVP-5), jede Buchung bleibt nachvollziehbar |
-| `email` eindeutig, Passwort nur als `passwordHash` (scrypt mit Salt) | Registrierung (P4); Demo-Personen haben kein Passwort |
+| Passwörter nur bei Supabase Auth, `User.authId` verknüpft das Konto (ohne Fremdschlüssel, weil `auth.users` in einem anderen Schema liegt) | Registrierung, Passwort vergessen, sichere Sitzungen ohne eigene Passwort-Speicherung (Umstieg 10.11.2026); Demo-Personen haben kein Konto |
+| Row Level Security auf allen Tabellen, ohne Freigabe-Regeln (`prisma/zugriffsschutz.ts`) | Tabellen sind nicht über die REST-Schnittstelle von Supabase erreichbar; Prisma als Eigentümer ist nicht betroffen |
 | eine `Attendance` je Spieler und Training (`@@unique`) | 1-Klick-Rückmeldung überschreibt die alte |
 | `note` optional | Absage ohne Rechtfertigungsdruck (Interview Spieler) |
 

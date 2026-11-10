@@ -6,14 +6,14 @@
 
 | Schicht | Name in den Diagrammen | Codename | Datei im Code |
 | --- | --- | --- | --- |
-| 1 Präsentation | Einloggen & Registrieren | Seiten `/`, `/registrieren` | `src/app/page.tsx`, `src/app/registrieren/page.tsx` |
+| 1 Präsentation | Einloggen & Registrieren | Seiten `/`, `/registrieren`, `/passwort-vergessen`, `/passwort-neu`, Route `/auth/callback` | `src/app/page.tsx`, `src/app/registrieren/…`, `src/app/passwort-…/…`, `src/app/auth/callback/route.ts` |
 | 1 Präsentation | Spieler-Ansicht | Seite `/spieler` | `src/app/spieler/page.tsx` |
 | 1 Präsentation | Trainer-Dashboard | Seiten `/trainer`, `/trainer/neu`, `/trainer/training/[id]` | `src/app/trainer/…` |
 | 1 Präsentation | Kassenwart-Ansicht | Seite `/kasse` | `src/app/kasse/page.tsx` |
 | 1 Präsentation | Protokoll-Ansicht | Seite `/protokoll` | `src/app/protokoll/page.tsx` |
 | 2 Anwendung | Eingaben verarbeiten | Server Actions (Klasse `ServerActions`) | `src/app/actions.ts` |
 | 2 Anwendung | Einloggen & Rollenprüfung | Auth | `src/lib/auth.ts` |
-| 2 Anwendung | Registrierung | Registration | `src/lib/registration.ts` (Passwort-Hash: `src/lib/password.ts`) |
+| 2 Anwendung | Registrierung | Registration | `src/lib/registration.ts` |
 | 3 Services | Zu-/Absagen & Anwesenheit | AttendanceService | `src/services/attendanceService.ts` |
 | 3 Services | Strafen vorschlagen & freigeben | PenaltyEngine | `src/services/penaltyEngine.ts` |
 | 3 Services | Protokollierung | AuditService | `src/services/auditService.ts` |
@@ -21,6 +21,7 @@
 | 4 Fachlogik | Regelverwaltung | Penalties | `src/domain/penalties.ts` |
 | 5 Datenzugriff | Datenbankzugriff | Prisma Client | `src/lib/db.ts` |
 | – | Datenbank | PostgreSQL (Supabase) | `prisma/schema.prisma` |
+| – | Supabase Auth (extern) | Supabase Auth | `src/lib/supabase.ts`, `src/middleware.ts` |
 
 Die fünf Schichten sind dieselben wie auf der Folie „Schichtenarchitektur“ und in der [Architekturbegründung](architekturbegruendung.md).
 

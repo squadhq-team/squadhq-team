@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import Link from "next/link";
+import { UrlInfo } from "@/components/UrlInfo";
 import "./globals.css";
 import { areasFor, getCurrentUser } from "@/lib/auth";
 import { ROLE_LABEL } from "@/lib/format";
@@ -42,7 +44,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </nav>
           )}
         </header>
-        <main className="mx-auto max-w-3xl space-y-4 px-4 py-5">{children}</main>
+        <main className="mx-auto max-w-3xl space-y-4 px-4 py-5">
+          <Suspense>
+            <UrlInfo />
+          </Suspense>
+          {children}
+        </main>
       </body>
     </html>
   );
