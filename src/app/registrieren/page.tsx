@@ -27,7 +27,10 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
           <Field label="Vor- und Nachname">
             <input name="name" autoComplete="name" required className={inputClass} />
           </Field>
-          <Field label="E-Mail">
+          <Field
+            label="E-Mail"
+            hint="Du bekommst eine Mail zur Bestätigung. Sie landet manchmal im Spam-Ordner, schau dann bitte dort nach."
+          >
             <input name="email" type="email" autoComplete="email" required className={inputClass} />
           </Field>
           <Field label="Passwort" hint="Mindestens 8 Zeichen.">
