@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { isEmailLoginEnabled, requireUser } from "@/lib/auth";
+import { isEmailLoginEnabled, isInDemoTeam, requireUser } from "@/lib/auth";
 import { ROLE_HINT, ROLE_LABEL } from "@/lib/format";
 import { pushPublicKey } from "@/services/pushService";
 import { Avatar, Card, Field, PageHeader, btn, inputClass } from "@/components/ui";
@@ -10,6 +10,7 @@ import { deleteAccountAction, leaveTeamAction, logout, updatePasswordAction, upd
 /** Mein Profil (#51): Name, Kontakt, Position; Passwort ändern, Benachrichtigungen, Team verlassen, Konto löschen. */
 export default async function ProfilePage() {
   const user = await requireUser();
+  const demo = await isInDemoTeam(user);
   return (
     <>
       <div className="flex items-center gap-4">
@@ -59,7 +60,7 @@ export default async function ProfilePage() {
         </Card>
       )}
 
-      {user.authId && isEmailLoginEnabled() && (
+      {user.authId && !demo && isEmailLoginEnabled() && (
         <Card title="Passwort ändern">
           <ActionForm action={updatePasswordAction} className="space-y-3">
             <input type="hidden" name="back" value="/profil" />
@@ -91,7 +92,13 @@ export default async function ProfilePage() {
       </form>
 
       <Card title="Team und Konto">
-        {user.teamId && (
+        {demo && (
+          <p className="text-sm text-stone-600">
+            Das ist ein Konto im Demo-Team zum Ausprobieren. Passwort ändern, Team verlassen und Konto löschen sind hier
+            abgeschaltet, damit es für alle gleich bleibt. Für ein eigenes Team bitte registrieren.
+          </p>
+        )}
+        {user.teamId && !demo && (
           <ActionForm action={leaveTeamAction} className="mb-4">
             <p className="mb-2 text-sm text-stone-600">
               Du verlässt das Team. Offene Beträge bleiben in der Kasse stehen.
@@ -99,7 +106,7 @@ export default async function ProfilePage() {
             <SubmitButton className={btn.danger}>Team verlassen</SubmitButton>
           </ActionForm>
         )}
-        {user.authId && (
+        {user.authId && !demo && (
           <ActionForm action={deleteAccountAction} className="space-y-2 border-t border-stone-100 pt-4">
             <p className="text-sm text-stone-600">
               Konto löschen: Name, E-Mail, Telefon und Anmeldung werden entfernt. Strafen bleiben anonym als „Gelöschtes

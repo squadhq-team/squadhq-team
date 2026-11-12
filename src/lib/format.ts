@@ -16,6 +16,12 @@ const dateOnly = new Intl.DateTimeFormat("de-DE", {
   timeZone: "Europe/Berlin",
 });
 const timeOnly = new Intl.DateTimeFormat("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" });
+const weekdayTime = new Intl.DateTimeFormat("de-DE", {
+  weekday: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "Europe/Berlin",
+});
 const dayShort = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", timeZone: "Europe/Berlin" });
 
 export const formatEuro = (cents: number) => euro.format(cents / 100);
@@ -24,6 +30,8 @@ export const formatDateTime = (d: Date) => dateTime.format(d);
 export const formatDate = (d: Date) => dateOnly.format(d);
 /** z. B. „19:00“ */
 export const formatTime = (d: Date) => timeOnly.format(d);
+/** z. B. „Sa., 16:00“ (Rückmeldefrist liegt oft an einem anderen Tag als der Termin) */
+export const formatWeekdayTime = (d: Date) => weekdayTime.format(d);
 /** z. B. „14.11.“ */
 export const formatDayShort = (d: Date) => dayShort.format(d);
 

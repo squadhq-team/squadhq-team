@@ -12,7 +12,7 @@ import {
 import { getAttendanceList } from "@/services/attendanceService";
 import { listPendingForSession } from "@/services/penaltyEngine";
 import { listRespondents } from "@/services/teamService";
-import { Avatar, Badge, ButtonLink, Card, attendanceTone, btn, eventTone, inputClass } from "@/components/ui";
+import { Avatar, Badge, ButtonLink, Card, attendanceTone, btn, eventTone } from "@/components/ui";
 import { ActionForm, SubmitButton } from "@/components/SubmitButton";
 import { RespondForm } from "@/components/RespondForm";
 import { approveAction, discardAction, setAttendanceAction, setLineupAction } from "../actions";
@@ -201,7 +201,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
             </p>
           )}
           {manage && (
-            <details className="mt-2" open={starters.length === 0}>
+            <details className="mt-2">
               <summary className="cursor-pointer text-sm font-semibold text-brand-700">Aufstellung bearbeiten</summary>
               <p className="my-2 text-xs text-stone-500">Zur Auswahl stehen alle, die nicht abgesagt haben.</p>
               <ul className="divide-y divide-stone-100">
@@ -217,7 +217,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
                           name="lineupPosition"
                           defaultValue={attendance?.lineupPosition ?? player.position ?? ""}
                           placeholder="Position"
-                          className={`${inputClass} w-28 py-1.5`}
+                          className="w-28 rounded-lg border border-stone-300 bg-white px-2 py-1.5 text-sm focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-200"
                         />
                         {[
                           { v: "STARTER", l: "Start" },

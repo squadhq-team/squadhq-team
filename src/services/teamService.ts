@@ -8,6 +8,9 @@ import { SQUAD_ROLES, generateJoinCode, normalizeJoinCode, roleChangeProblem } f
 import { STRAFENKATALOG } from "../../prisma/strafenkatalog";
 import { logMemberChange } from "./auditService";
 
+/** Das Demo-Team und seine Testkonten bleiben für alle gleich: kein Austritt, kein Löschen. */
+const DEMO_LOCKED = "Im Demo-Team geht das nicht, damit es für alle zum Ausprobieren gleich bleibt.";
+
 /** Freien Team-Code finden (bei Kollision neu würfeln). */
 async function freeJoinCode(): Promise<string> {
   for (let i = 0; i < 20; i++) {
@@ -134,8 +137,9 @@ export async function removeMember(params: { teamId: string; actorId: string; us
 
 /** Mitglied verlässt das Team selbst. Der letzte Trainer kann erst gehen, wenn es einen anderen Trainer gibt. */
 export async function leaveTeam(userId: string) {
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, include: { team: true } });
   if (!user.teamId) return;
+  if (user.team?.isDemo) throw new Error(DEMO_LOCKED);
   const others = await prisma.user.count({
     where: { teamId: user.teamId, deletedAt: null, id: { not: userId } },
   });
@@ -223,7 +227,8 @@ export async function updateProfile(
  * Das Konto bei Supabase Auth wird direkt in der Datenbank gelöscht (auth.users); lokal ohne Supabase wird das übersprungen.
  */
 export async function deleteAccount(userId: string) {
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, include: { team: true } });
+  if (user.team?.isDemo) throw new Error(DEMO_LOCKED);
   if (user.teamId && user.role === "TRAINER") {
     const others = await prisma.user.count({ where: { teamId: user.teamId, deletedAt: null, id: { not: userId } } });
     const trainers = await prisma.user.count({ where: { teamId: user.teamId, role: "TRAINER", deletedAt: null } });

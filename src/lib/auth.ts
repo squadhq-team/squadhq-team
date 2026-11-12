@@ -11,7 +11,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { Team, User } from "@prisma/client";
 import { prisma } from "./db";
-import { can as roleCan, type Permission } from "@/domain/permissions";
+import { isTestAccountEmail, can as roleCan, type Permission } from "@/domain/permissions";
 import { cookieSecret, sign, verify } from "./signedCookie";
 import { createSupabaseServerClient, isSupabaseConfigured } from "./supabase";
 import { ensureAppUser, translateAuthError, validateNewPassword } from "./registration";
@@ -44,7 +44,7 @@ export async function getCurrentUser(): Promise<User | null> {
   if (!isDemoLoginEnabled()) return null;
   const id = verify((await cookies()).get(DEMO_COOKIE)?.value, cookieSecret());
   if (!id) return null;
-  return prisma.user.findFirst({ where: { id, authId: null, team: { isDemo: true } } });
+  return prisma.user.findFirst({ where: { id, deletedAt: null, team: { isDemo: true } } });
 }
 
 /** Angemeldetes Mitglied eines Teams (teamId ist gesetzt). */
@@ -96,11 +96,17 @@ export async function assertUser(): Promise<User> {
   return user;
 }
 
+/** Gehört die Person zum Demo-Team? Dort sind Passwort ändern, Austritt und Löschen abgeschaltet. */
+export async function isInDemoTeam(user: Pick<User, "teamId">): Promise<boolean> {
+  if (!user.teamId) return false;
+  return !!(await prisma.team.findUnique({ where: { id: user.teamId }, select: { isDemo: true } }))?.isDemo;
+}
+
 /** Demo-Anmeldung: die Personen des Demo-Teams zur Auswahl; leer, wenn die Demo-Anmeldung aus ist. */
 export async function listLoginUsers(): Promise<User[]> {
   if (!isDemoLoginEnabled()) return [];
   return prisma.user.findMany({
-    where: { authId: null, team: { isDemo: true } },
+    where: { deletedAt: null, team: { isDemo: true } },
     orderBy: [{ role: "asc" }, { name: "asc" }],
   });
 }
@@ -109,7 +115,7 @@ export async function listLoginUsers(): Promise<User[]> {
 export async function signIn(userId: string): Promise<User> {
   if (!isDemoLoginEnabled()) throw new Error("Die Demo-Anmeldung ist abgeschaltet.");
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, include: { team: true } });
-  if (user.authId || !user.team?.isDemo) throw new Error("Dieses Konto meldet sich mit E-Mail und Passwort an.");
+  if (!user.team?.isDemo || user.deletedAt) throw new Error("Dieses Konto meldet sich mit E-Mail und Passwort an.");
   await (await createSupabaseServerClient())?.auth.signOut();
   (await cookies()).set(DEMO_COOKIE, sign(user.id, cookieSecret()), {
     httpOnly: true,
@@ -148,6 +154,8 @@ export async function signOut(): Promise<void> {
 export async function requestPasswordReset(email: string, redirectTo: string): Promise<void> {
   const supabase = await createSupabaseServerClient();
   if (!supabase) throw new Error("Passwort zurücksetzen ist noch nicht eingerichtet.");
+  // Testkonten (Domain .test) können keine Mails empfangen; ihr Passwort steht in der README
+  if (isTestAccountEmail(email)) return;
   const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo });
   if (error && /rate limit|too many/i.test(error.message)) throw new Error(translateAuthError(error.message));
 }
@@ -159,6 +167,8 @@ export async function updatePassword(password: string, repeat: string): Promise<
   const supabase = await createSupabaseServerClient();
   const { data } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
   if (!supabase || !data.user) throw new Error("Der Link ist abgelaufen. Bitte fordere einen neuen an.");
+  if (isTestAccountEmail(data.user.email))
+    throw new Error("Das Passwort der Testkonten bleibt fest, damit alle sie nutzen können.");
   const { error } = await supabase.auth.updateUser({ password });
   if (error) throw new Error(translateAuthError(error.message));
 }

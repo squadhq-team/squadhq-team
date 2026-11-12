@@ -33,10 +33,7 @@ export default async function StartPage() {
 
   return (
     <>
-      <div>
-        <p className="text-sm text-stone-500">{user.team.name}</p>
-        <h1 className="display text-3xl">Hallo {user.name.split(" ")[0]}</h1>
-      </div>
+      <h1 className="display text-3xl">Hallo {user.name.split(" ")[0]}</h1>
 
       {missing.length > 0 && (
         <Link href={`/termine/${missing[0].id}`} className="block rounded-2xl bg-accent p-4 text-ink shadow-sm">

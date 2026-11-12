@@ -86,6 +86,16 @@ export function roleChangeProblem(params: {
   return null;
 }
 
+/**
+ * Testkonten des Demo-Teams (prisma/testkonten.ts) haben E-Mails unter dieser Domain. `.test` ist reserviert
+ * und kann keine Mails empfangen, deshalb verschickt die App dorthin nichts (z. B. „Passwort vergessen“).
+ */
+export const TEST_ACCOUNT_DOMAIN = "@squadhq.test";
+
+export function isTestAccountEmail(email: string | null | undefined): boolean {
+  return !!email && email.trim().toLowerCase().endsWith(TEST_ACCOUNT_DOMAIN);
+}
+
 /** Zeichen für Team-Codes: ohne leicht verwechselbare Zeichen (0/O, 1/I/L). */
 export const JOIN_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 export const JOIN_CODE_LENGTH = 6;

@@ -7,7 +7,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db";
 import { parseBerlinDateTime } from "@/lib/format";
-import { changeRole, createTeam, joinTeam, listRespondents } from "@/services/teamService";
+import { changeRole, createTeam, deleteAccount, joinTeam, leaveTeam, listRespondents } from "@/services/teamService";
 import { getAttendanceList, importCalendar, respond, setByTrainer } from "@/services/attendanceService";
 import { approvePenalty, cancelPenalty, createManualPenalty, getPlayerAccount } from "@/services/penaltyEngine";
 import { addTransaction, applyLateFees, cancelTransaction, createFees, getTeamCash } from "@/services/paymentService";
@@ -271,5 +271,19 @@ describe.skipIf(!run)("Sprint Features & Design (Datenbank)", () => {
     expect((await prisma.trainingSession.findFirstOrThrow({ where: { teamId, importUid: "imp-1" } })).title).toBe(
       "Heimspiel (verlegt)",
     );
+  });
+
+  it("Demo-Team bleibt für alle gleich: Testkonten können nicht austreten und nicht gelöscht werden", async () => {
+    const suffix = Math.random().toString(36).slice(2, 8).toUpperCase();
+    const demo = await prisma.team.create({ data: { name: "Demo-Test", joinCode: `D${suffix}`, isDemo: true } });
+    const tester = await prisma.user.create({
+      data: { name: "Testkonto", role: "PLAYER", teamId: demo.id, email: `spieler-${suffix}@squadhq.test` },
+    });
+    await expect(leaveTeam(tester.id)).rejects.toThrow(/Demo-Team/);
+    await expect(deleteAccount(tester.id)).rejects.toThrow(/Demo-Team/);
+    expect(await prisma.user.findUniqueOrThrow({ where: { id: tester.id } })).toMatchObject({
+      teamId: demo.id,
+      deletedAt: null,
+    });
   });
 });

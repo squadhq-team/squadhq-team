@@ -3,7 +3,7 @@
  * Stand der Zusagen und 1-Klick-Rückmeldung für sich selbst bzw. vertretene Mitglieder.
  */
 import Link from "next/link";
-import { EVENT_TYPE_LABEL, formatDateTime, formatDayShort, formatTime } from "@/lib/format";
+import { EVENT_TYPE_LABEL, formatDateTime, formatDayShort, formatTime, formatWeekdayTime } from "@/lib/format";
 import { RespondForm } from "./RespondForm";
 
 type EventLike = {
@@ -75,7 +75,7 @@ export function EventCard({
       <div className="grid grid-cols-3 divide-x divide-stone-100 border-b border-stone-100 py-2 text-center">
         <TimeCell label="Treffen" value={event.meetingAt ? formatTime(event.meetingAt) : "–"} />
         <TimeCell label="Beginn" value={formatTime(event.startsAt)} />
-        <TimeCell label="Antwort bis" value={formatTime(event.responseDeadline)} />
+        <TimeCell label="Antwort bis" value={formatWeekdayTime(event.responseDeadline)} />
       </div>
       <div className="flex items-center gap-4 px-4 py-2 text-sm">
         <Count icon="👍" value={counts.attending} label="dabei" className="text-emerald-700" />

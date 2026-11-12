@@ -7,6 +7,7 @@
  */
 import { PrismaClient } from "@prisma/client";
 import { STRAFENKATALOG } from "./strafenkatalog";
+import { TESTKONTEN, testkontenAnlegen } from "./testkonten";
 
 const prisma = new PrismaClient();
 
@@ -440,6 +441,13 @@ async function main() {
       createdAt: at(-6, 20),
     },
   });
+
+  // Testkonten mit E-Mail und Passwort (README), nur wenn Supabase Auth da ist
+  await testkontenAnlegen(prisma, [
+    { userId: trainer.id, email: TESTKONTEN.trainer },
+    { userId: paul.id, email: TESTKONTEN.spieler },
+    { userId: cashier.id, email: TESTKONTEN.kassenwart },
+  ]);
 
   console.log(
     `Seed fertig: Demo-Team mit ${players.length} Spielern, Trainer, Betreuer, Kassenwart, 7 Terminen, ${STRAFENKATALOG.length} Katalogregeln.`,

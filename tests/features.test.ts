@@ -7,6 +7,7 @@ import {
   JOIN_CODE_ALPHABET,
   can,
   generateJoinCode,
+  isTestAccountEmail,
   mayRespondFor,
   normalizeJoinCode,
   roleChangeProblem,
@@ -61,6 +62,15 @@ describe("Rechte (REQ-SEC-01)", () => {
     );
     expect(roleChangeProblem({ target: { role: "TRAINER" }, newRole: "PLAYER", trainerCount: 2 })).toBeNull();
     expect(roleChangeProblem({ target: { role: "PLAYER" }, newRole: "CASHIER", trainerCount: 1 })).toBeNull();
+  });
+});
+
+describe("Testkonten", () => {
+  it("erkennt die Testkonten an der reservierten Domain .test, egal wie geschrieben", () => {
+    expect(isTestAccountEmail("trainer@squadhq.test")).toBe(true);
+    expect(isTestAccountEmail(" Kassenwart@SquadHQ.test ")).toBe(true);
+    expect(isTestAccountEmail("trainer@squadhq.de")).toBe(false);
+    expect(isTestAccountEmail(null)).toBe(false);
   });
 });
 
