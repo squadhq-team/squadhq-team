@@ -1,6 +1,6 @@
 # Nutzertest SquadHQ: Leitfaden für die Moderation
 
-Mit den Nutzertests prüfen wir, ob echte Spieler, Trainer und Kassenwarte SquadHQ ohne Hilfe bedienen können. Wir messen die drei Kriterien der Gebrauchstauglichkeit nach ISO 9241-11:
+Wir testen SquadHQ mit einer echten Mannschaft und echten Daten, nicht mit Testkonten: Der Trainer registriert sich, gründet das Team und lädt seine Spieler per Link ein. Danach testet jede Person die Funktionen ihrer Rolle als Spieler, Kassenwart oder Trainer. Wir messen die drei Kriterien der Gebrauchstauglichkeit nach ISO 9241-11:
 
 | Kriterium | Messgröße | Material |
 |---|---|---|
@@ -10,57 +10,71 @@ Mit den Nutzertests prüfen wir, ob echte Spieler, Trainer und Kassenwarte Squad
 
 Der Fragebogen ist bewusst **nicht** in der App, sondern wird ausgedruckt und auf Papier ausgefüllt. Die Auswertung erfolgt in `auswertung-nutzertest.xlsx`.
 
-## Wer macht was
+## Wer macht mit
 
-- **Moderation:** begrüßt, gibt die Aufgabenkarte, liest jede Aufgabe vor und hilft nicht. Bei Fragen der Testperson: „Was würdest du jetzt versuchen?“
-- **Protokoll:** stoppt die Zeit, zählt Fehler und notiert Beobachtungen und Zitate auf dem Protokollbogen.
-
-Wenn nur eine Person aus dem Team da ist, übernimmt sie beides; die Zeit läuft dann per Handy-Stoppuhr mit.
-
-## Material je Testperson
-
-| Material | Anzahl | Datei |
+| Wer | Anzahl | Testet |
 |---|---|---|
-| Aufgabenkarte der Rolle (für die Testperson) | 1 | `2-Aufgabenkarten-Testperson.pdf`, Seite der Rolle |
-| Protokollbogen der Rolle (für uns) | 1 | `3-Protokollbogen.pdf`, Seite der Rolle |
-| SUS-Fragebogen | 1 | `4-SUS-Fragebogen.pdf` |
-| Handy oder Laptop mit https://squadhq-omega.vercel.app | 1 | – |
-| Stoppuhr (Handy) | 1 | – |
+| Trainer der Mannschaft | 1 | Trainer-Aufgaben |
+| Spieler, der Kassenwart wird | 1 | erst Spieler-Aufgaben, dann Kassenwart-Aufgaben |
+| weitere Spieler | mindestens 3 | Spieler-Aufgaben |
 
-Die Testperson nutzt am besten **ihr eigenes Handy**, so wie sie die App später auch nutzen würde. Vorher abmelden bzw. im privaten Tab öffnen, damit niemand schon angemeldet ist.
+Jede Testperson braucht **ihr eigenes Handy**, Zugriff auf **ihr E-Mail-Postfach** (für die Bestätigungsmail) und muss in einer gemeinsamen **WhatsApp-Gruppe** sein, in die der Trainer die Einladung schickt. Die Namen der Testpersonen kennen wir vorher nicht; sie stehen erst nach der Registrierung in der App. Auf unseren Bögen notieren wir nur Kürzel (T01, T02, …).
 
-## Vorbereitung vor jedem Testtag
+**Beobachter:** Möglichst jede Testperson bekommt ein eigenes Teammitglied als Beobachter, das Zeit stoppt und den Protokollbogen führt. In den Spieler-Phasen arbeiten alle Spieler gleichzeitig. Sind wir zu wenige, beobachtet eine Person zwei Spieler nebeneinander oder die Spieler kommen nacheinander dran.
 
-Alle Testpersonen arbeiten im Demo-Team „TSV Kronshagen 1. Herren (Demo)“ mit den drei Testkonten aus der README. Was eine Testperson ändert, sieht die nächste. Deshalb vorher einmal als Trainer und Kassenwart prüfen:
+Beobachter helfen nicht. Bei Fragen: „Was würdest du jetzt versuchen?“
 
-- [ ] Anmelden mit `trainer@squadhq.test`, `spieler@squadhq.test` und `kassenwart@squadhq.test` (Passwort `SquadHQ-Test26`) funktioniert.
-- [ ] Es gibt **mindestens zwei kommende Termine**, davon das nächste ein Training. Sonst als Trainer neue Trainings anlegen (die Demo-Termine von `db:reset` liegen irgendwann in der Vergangenheit).
-- [ ] Das **letzte vergangene Training** hat noch Spieler mit „Da“ (für Trainer-Aufgabe 4).
-- [ ] Es gibt **offene Strafen** bei mindestens zwei Spielern außer Paul Thomsen (für Kassenwart-Aufgaben 3 und 4). Sonst als Trainer per „+ Strafe“ welche anlegen.
-- [ ] **Paul Thomsen** hat einen offenen Betrag und unter Kasse → „PayPal“ ist ein PayPal-Name hinterlegt (für Spieler-Aufgaben 5 und 6). Pauls Strafen deshalb nie in Kassenwart-Aufgaben verwenden.
-- [ ] **Vor jeder Spieler-Testperson:** mit dem Spieler-Konto bei den nächsten zwei Terminen „Unsicher“ wählen und das Feld „Grund (optional)“ leeren. So startet jede Testperson mit demselben Stand für die Spieler-Aufgaben 2 und 3. Danach abmelden.
+## Ablauf (ca. 60 Minuten)
 
-> ⚠️ Niemals `npm run db:reset` auf der Live-Datenbank ausführen, um Testdaten aufzufrischen. Das löscht auch alle echten Teams und Nutzer.
+Die Aufgaben bauen aufeinander auf: Erst gibt es das Team, dann die Spieler, dann die Kasse. Deshalb arbeiten wir in Phasen. Wer gerade keine Phase hat, wartet und schaut nicht auf die Handys der anderen.
 
-**Platzhalter festlegen:** Die Aufgaben enthalten [Spieler X], [Spieler Y] und [Spieler Z]. Vor jeder Testperson Namen eintragen (auf Karte und Protokollbogen):
+| Phase | Wer | Was | ca. Min. |
+|---|---|---|---|
+| 0 | Moderation | Begrüßung, Einverständnis, Platzhalter festlegen, Aufgabenkarten verteilen | 5 |
+| 1 | Trainer | Registrieren, Team gründen, Strafenkatalog, Training heute und Spiel am Sonntag anlegen, Einladung schicken | 12 |
+| 2 | Spieler (alle, auch die künftige Kassenwart-Person) | Über den Einladungslink registrieren, Profil, Zusage Training, Absage Spiel mit Grund | 10 |
+| 3 | Trainer | Zusagen ansehen, Kassenwart ernennen, Ankündigung | 5 |
+| 4 | Kassenwart | PayPal-Name, Beitrag für alle, Strafe vergeben | 6 |
+| 5 | Spieler (alle) | Kassenkonto prüfen, PayPal-Weg zeigen, Chat | 5 |
+| 6 | Trainer, **erst nach Beginn des Testtrainings** | Anwesenheit bestätigen, Strafen freigeben | 5 |
+| 7 | Kassenwart | Überblick, Barzahlung, Teilzahlung, Ausgabe, Protokoll | 8 |
+| 8 | Alle | SUS-Fragebogen (allein ausfüllen), danach kurzes Gespräch | 8 |
 
-- **[Spieler X]** (Trainer): ein Spieler, der beim letzten vergangenen Training auf „Da“ steht.
-- **[Spieler Y]** und **[Spieler Z]** (Kassenwart): zwei verschiedene Spieler mit offener Strafe, nicht Paul Thomsen.
+Das Testtraining aus Phase 1 muss beginnen, bevor Phase 6 startet, sonst lässt sich die Anwesenheit noch nicht bestätigen. Deshalb legt der Trainer es auf **ca. 45 Minuten nach Teststart** an. Ist die Zeit noch nicht erreicht, ziehen wir Phase 8 für die Spieler vor.
 
-Die Zielzeiten in den Aufgaben sind Schätzungen. Bevor echte Testpersonen drankommen, führt ein Teammitglied, das die App nicht selbst gebaut hat, einen **Pilotdurchlauf** durch. Ist eine Zielzeit dabei offensichtlich unrealistisch, passen wir sie vor dem ersten echten Test an und halten das fest.
+## Platzhalter festlegen (Phase 0)
 
-## Ablauf je Testperson (ca. 20 Minuten)
+Einige Aufgaben enthalten Platzhalter. Die Moderation legt sie zu Beginn fest und trägt sie auf den Aufgabenkarten (leere Linie) und im Kopf des Protokollbogens ein. Da wir die Namen vorher nicht kennen, reicht der Vorname bzw. wer es ist („der mit der roten Jacke“).
 
-1. **Begrüßung (2 Min.)**, sinngemäß vorlesen:
-   > „Danke, dass du mitmachst. Wir testen heute nicht dich, sondern unsere App. Wenn etwas nicht klappt, ist das ein Fehler der App, und genau das wollen wir finden. Bitte sag laut, was du denkst, was du suchst und was dich wundert. Ich darf dir während der Aufgaben nicht helfen. Wir notieren keine Namen, die Auswertung ist anonym. Ist das für dich in Ordnung?“
-2. **Einverständnis** einholen und auf dem Protokollbogen ankreuzen. Kürzel vergeben: T01, T02, … (fortlaufend über alle Testtage).
-3. **Szenario vorlesen** (steht oben auf der Aufgabenkarte) und die Karte übergeben.
-4. **Aufgaben (10 bis 12 Min.):** Jede Aufgabe einzeln vorlesen. Die Zeit läuft nach dem Vorlesen, sobald die Testperson das Gerät berührt; sie stoppt, wenn das Erfolgskriterium erreicht ist oder die Testperson „fertig“ bzw. „ich gebe auf“ sagt.
-5. **SUS-Fragebogen (3 Min.):** direkt nach den Aufgaben, bevor wir über die App sprechen. Die Testperson füllt ihn allein aus.
-6. **Kurzes Gespräch (3 Min.):** die drei offenen Fragen unten auf dem Fragebogen durchgehen und auffällige Stellen aus den Aufgaben nachfragen („Bei Aufgabe 3 hast du gezögert, was hast du erwartet?“).
-7. **Danke sagen**, abmelden, Gerät zurücksetzen.
+| Platzhalter | Wer oder was |
+|---|---|
+| [Uhrzeit] | Beginn des Testtrainings heute, ca. 45 Minuten nach Teststart |
+| [Kassenwart-Person] | die Testperson, die Kassenwart wird |
+| [Fehlende Person] | ein Spieler, der beim Testtraining als unentschuldigt gilt. Er wählt in Phase 2 bei der Zusage „Unsicher“ statt „Dabei“ (leise ansagen, nicht vor dem Trainer). |
+| [Spieler A] | ein Spieler, der die Zuspät-Strafe bekommt (nicht die Kassenwart-Person) |
+| [Spieler B] | ein Spieler, der den Beitrag bar bezahlt (nicht Spieler C) |
+| [Spieler C] | ein Spieler, der 2 € per PayPal anzahlt (nicht Spieler B) |
 
-## Regeln für die Bewertung
+Es fließt kein echtes Geld: Barzahlung und PayPal-Zahlung werden nur gespielt, auf der PayPal-Seite brechen alle ab.
+
+## Vorbereitung vor dem Testtag
+
+- [ ] Die aktuelle Version ist auf https://squadhq-omega.vercel.app deployt.
+- [ ] Die **Bestätigungsmail kommt an**: einmal selbst mit einer neuen E-Mail-Adresse registrieren, Mail bestätigen (auch Spam-Ordner prüfen), Konto danach unter Profil → „Konto endgültig löschen“ wieder löschen.
+- [ ] In Supabase unter Authentication → Rate Limits ist das Mail-Limit hoch genug (Standard bei eigenem SMTP sind 30 Mails pro Stunde, besser z. B. 100), sonst bekommen bei vielen gleichzeitigen Registrierungen nicht alle eine Bestätigungsmail.
+- [ ] Ein Teammitglied, das die App nicht selbst gebaut hat, macht einen **Pilotdurchlauf** mit allen Phasen (eigene Konten, eigenes Pilot-Team). Ist eine Zielzeit dabei offensichtlich unrealistisch, passen wir sie vor dem echten Test an und halten das fest. Das Pilot-Team danach löschen (Konten löschen).
+- [ ] Ausdrucke: je Testperson eine Aufgabenkarte ihrer Rolle, ein Protokollbogen ihrer Rolle (Kassenwart-Person: Spieler- und Kassenwart-Bogen) und ein SUS-Fragebogen. Stoppuhr am Handy für jeden Beobachter.
+
+## Begrüßung (Phase 0), sinngemäß vorlesen
+
+> „Danke, dass ihr mitmacht. Wir testen heute nicht euch, sondern unsere App. Wenn etwas nicht klappt, ist das ein Fehler der App, und genau das wollen wir finden. Bitte sagt laut, was ihr denkt, was ihr sucht und was euch wundert. Wir dürfen euch während der Aufgaben nicht helfen.
+> Ihr legt dafür echte Konten mit eurem Namen und eurer E-Mail-Adresse an. Die Daten bleiben in unserer App und werden nicht weitergegeben; wer möchte, kann sein Konto nach dem Test im Profil selbst löschen. Unsere Notizen und der Fragebogen sind anonym, wir notieren nur Kürzel. Ist das für euch in Ordnung?“
+
+Einverständnis je Person auf dem Protokollbogen ankreuzen. Wer nicht mit eigener E-Mail mitmachen möchte, darf eine Wegwerf-Adresse nutzen, braucht aber Zugriff darauf.
+
+## Regeln für die Zeitmessung und Bewertung
+
+Die Zeit läuft nach dem Vorlesen der Aufgabe, sobald die Testperson das Handy berührt, und stoppt, wenn das Erfolgskriterium erreicht ist oder die Testperson „fertig“ bzw. „ich gebe auf“ sagt. Bei den Registrierungen notieren wir zusätzlich, wie lange die Bestätigungsmail gebraucht hat.
 
 | Feld | Regel |
 |---|---|
@@ -72,11 +86,17 @@ Die Zielzeiten in den Aufgaben sind Schätzungen. Bevor echte Testpersonen drank
 | **Hilfe** | ankreuzen, sobald wir eingreifen. Erst nach 1× Zielzeit einen kleinen Hinweis geben („Schau mal unten in der Leiste“), nie die Lösung zeigen. |
 | **Beobachtungen** | wörtliche Zitate in Anführungszeichen, Zögern, Suchen, Überraschungen |
 
-Baut eine Aufgabe auf einer vorigen auf (Trainer 4 → 5, Trainer 3 → 8) und die vorige ist gescheitert, richten wir den Ausgangszustand kurz selbst her und notieren das.
+Scheitert eine Aufgabe, auf der spätere aufbauen (z. B. Team gründen, Einladung schicken, Kassenwart ernennen), stellen wir den nötigen Zustand selbst her, damit die anderen weitermachen können, und notieren das.
+
+## Nach dem Test
+
+Das Team bleibt in der App bestehen und kann von der Mannschaft weiter genutzt werden. Testbuchungen (Beitrag, Strafen, Ausgabe) kann der Kassenwart in der Kasse stornieren; wer sein Konto nicht behalten möchte, löscht es im Profil.
+
+> ⚠️ Niemals `npm run db:reset` auf der Live-Datenbank ausführen. Das löscht alle echten Teams und Nutzer.
 
 ## Auswertung
 
-1. Protokollbögen und Fragebögen nach jedem Testtag in `auswertung-nutzertest.xlsx` übertragen. Die Tabelle berechnet SUS-Werte, Erfolgsquoten und mittlere Zeiten automatisch.
+1. Protokollbögen und Fragebögen direkt nach dem Test in `auswertung-nutzertest.xlsx` übertragen. Die Tabelle berechnet SUS-Werte, Erfolgsquoten und mittlere Zeiten automatisch.
 2. **SUS-Wert je Person:** Ungerade Aussagen (1, 3, 5, 7, 9): Kreuz − 1. Gerade Aussagen (2, 4, 6, 8, 10): 5 − Kreuz. Alle zehn Werte addieren und mit 2,5 multiplizieren. Ergebnis: 0 bis 100. Fehlt ein Kreuz, wird 3 (Mitte) angenommen und das notiert.
 3. **Einordnung** (Bangor, Kortum & Miller 2009; Sauro 2011):
 
@@ -89,6 +109,6 @@ Baut eine Aufgabe auf einer vorigen auf (Trainer 4 → 5, Trainer 3 → 8) und d
    | unter 51 | schlecht, deutliche Probleme |
 
 4. **Befunde sammeln:** Jedes beobachtete Problem bekommt einen Schweregrad (1 = kosmetisch, 2 = gering, 3 = groß, 4 = kritisch: Aufgabe nicht lösbar). Probleme ab Schweregrad 2 legen wir als Issue mit dem Label „Nutzertest“ an und verlinken die Testpersonen-Kürzel.
-5. **Für die Präsentation:** Wer hat getestet (Anzahl, Rollen), wie (Aufgaben mit Zeitmessung + SUS), Ergebnis (SUS-Mittelwert, Erfolgsquoten, wichtigste Probleme), Konsequenz (welche Issues wir daraus umgesetzt haben).
+5. **Für die Präsentation:** Wer hat getestet (Anzahl, Rollen, echte Mannschaft), wie (eigene Konten, Aufgaben mit Zeitmessung + SUS), Ergebnis (SUS-Mittelwert, Erfolgsquoten, wichtigste Probleme), Konsequenz (welche Issues wir daraus umgesetzt haben).
 
-Ziel sind mindestens **fünf Testpersonen** außerhalb des Projektteams, möglichst jede Rolle mehrfach; schon fünf Personen decken erfahrungsgemäß die meisten Bedienprobleme auf (Nielsen & Landauer 1993). Gibt es nicht genug echte Trainer oder Kassenwarte, übernehmen Spieler diese Rollen; das vermerken wir im Protokollbogen unter „Rolle im echten Team“.
+Ziel sind mindestens **fünf Testpersonen** außerhalb des Projektteams; schon fünf Personen decken erfahrungsgemäß die meisten Bedienprobleme auf (Nielsen & Landauer 1993). Testen mehrere Mannschaften, läuft der Ablauf je Mannschaft einmal komplett, mit fortlaufenden Kürzeln.
