@@ -17,7 +17,7 @@ Wer die App nur testen möchte, muss sich nicht registrieren. Diese drei Konten 
 
 Auf der Startseite unter „Anmelden“ E-Mail und Passwort eingeben. Noch schneller geht es darunter über **Demo ansehen** (Person anklicken, ohne Passwort). Im Demo-Team sind Passwort ändern, Team verlassen und Konto löschen abgeschaltet, damit es für alle gleich bleibt. Ein eigenes Team bekommt man über **Registrieren** und dann **Neues Team gründen**.
 
-Die Testkonten legt `npm run db:reset` automatisch an (`prisma/testkonten.ts`), sobald die Datenbank bei Supabase liegt. Lokal ohne Supabase gibt es nur die Demo-Anmeldung.
+Die Testkonten hat das Team einmalig auf der Live-Datenbank angelegt (`prisma/testkonten.ts`, läuft bei `npm run db:reset` mit). In einer eigenen lokalen Datenbank ohne Supabase gibt es nur die Demo-Anmeldung.
 
 ## Team
 | Name | Rolle |
@@ -31,18 +31,37 @@ Die Testkonten legt `npm run db:reset` automatisch an (`prisma/testkonten.ts`), 
 ## Tech-Stack
 Next.js 15 (TypeScript, App Router, Server Actions), Tailwind CSS, Prisma, PostgreSQL (Supabase), Supabase Auth, Vitest, Deployment auf Vercel
 
-## App lokal ausführen
-**Voraussetzungen:** [Node.js](https://nodejs.org) 20 oder neuer, Git und eine PostgreSQL-Datenbank (lokal installiert oder ein kostenloses Supabase-Projekt).
+## App starten
 
+### Nur ausprobieren: nichts installieren
+Die Live-Demo https://squadhq-omega.vercel.app öffnen und mit einem der [Testkonten](#zum-ausprobieren-testkonten) anmelden. Mehr ist nicht nötig.
+
+### Lokal in VS Code starten
+**Voraussetzungen:** [Node.js](https://nodejs.org) 20 oder neuer und Git. Die Befehle im Terminal von VS Code ausführen (Menü Terminal → Neues Terminal).
+
+**1. Code holen und Abhängigkeiten installieren** (immer nötig, einmalig):
 ```bash
 git clone https://github.com/squadhq-team/squadhq-team.git
 cd squadhq-team
-npm install               # Abhängigkeiten installieren
-cp .env.example .env      # danach in .env DATABASE_URL und DIRECT_URL eintragen
-npm run db:reset          # Tabellen anlegen und Demo-Daten laden (löscht vorhandene Daten!)
-npm run dev               # App starten: http://localhost:3000
+npm install
 ```
-Im Browser http://localhost:3000 öffnen und unter „Demo ansehen“ eine Person wählen. Für Registrieren und Anmelden mit E-Mail und Passwort zusätzlich `SUPABASE_URL` und `SUPABASE_ANON_KEY` in `.env` eintragen (siehe [docs/setup.md](docs/setup.md)).
+
+**2. Datenbank festlegen.** Die App braucht eine PostgreSQL-Datenbank; welche, steht in der Datei `.env`. Hier gibt es zwei Fälle, bitte nur einen davon ausführen:
+
+| | Fall A: Ihr habt von uns eine fertige `.env` bekommen | Fall B: eigene, leere Datenbank auf dem eigenen PC |
+|---|---|---|
+| Was ist das? | Die `.env` zeigt auf unsere Live-Datenbank mit Demo-Team, Testkonten und echten Daten | Eine eigene PostgreSQL-Datenbank, z. B. installiert oder per Docker: `docker run --name squadhq-db -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=squadhq -p 5432:5432 -d postgres:16` |
+| `.env` | die erhaltene Datei in den Ordner `squadhq-team` legen | `cp .env.example .env` (Windows-Eingabeaufforderung: `copy .env.example .env`); die Werte passen bereits zu dem Docker-Befehl links |
+| Tabellen und Demo-Daten | **nichts tun**, alles ist schon da | **einmalig** `npm run db:reset` |
+| ⚠️ Nicht machen | **niemals `npm run db:reset`**: Das löscht die Live-Datenbank komplett, auch alle echten Teams und Nutzer | – |
+
+**3. App starten** (jedes Mal):
+```bash
+npm run dev
+```
+Dann im Browser http://localhost:3000 öffnen. Anmelden geht in Fall A mit den Testkonten oder unter „Demo ansehen“, in Fall B nur unter „Demo ansehen“ (Person anklicken). Für Registrieren und Anmelden mit E-Mail und Passwort in Fall B zusätzlich `SUPABASE_URL` und `SUPABASE_ANON_KEY` eintragen (siehe [docs/setup.md](docs/setup.md)).
+
+Beim nächsten Mal reicht `npm run dev`. Nach einem `git pull` zuerst `npm install`; `npm run db:reset` nur in Fall B und nur, wenn sich das Datenmodell geändert hat oder frische Demo-Daten gewünscht sind.
 
 Weitere Befehle:
 ```bash
