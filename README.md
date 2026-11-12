@@ -72,7 +72,7 @@ Fünf Schichten, gleiche Namen wie im [Komponentendiagramm](docs/architektur/kom
 5. Zahlungsverfolgung durch den Kassenwart (bar oder PayPal)
 6. Lückenloses Audit-Log
 
-Dazu seit dem Sprint „Features & Design“: Teams mit Team-Code und Rollen (Trainer, Betreuer, Kassenwart, Spieler, Eltern/Stellvertreter), Spiele und Events mit Treffpunkt und Aufstellung, Spielplan-Import, manuelle Strafen, automatische Mahngebühr, Beiträge, Einnahmen und Ausgaben, PayPal-Link, Ankündigungen, Umfragen, Chat, Statistik und Push-Erinnerungen.
+Dazu seit dem Sprint „Features & Design“: Teams mit Team-Code und Rollen (Trainer, Betreuer, Kassenwart, Spieler, Elternteil/Stellvertreter), Spiele und Events mit Treffpunkt und Aufstellung, Spielplan-Import, manuelle Strafen, automatische Mahngebühr, Beiträge, Einnahmen und Ausgaben, PayPal-Link, Ankündigungen, Umfragen, Chat, Statistik und Push-Erinnerungen.
 
 Details und Gesamtumfang: [docs/anforderungen/features-und-mvps.md](docs/anforderungen/features-und-mvps.md)
 

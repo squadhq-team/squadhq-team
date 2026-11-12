@@ -51,3 +51,12 @@ Die Liste beschreibt, wohin sich SquadHQ entwickeln soll. Was nicht in den MVPs 
 | Team-Chat | Won't | im Gesamtumfang, nicht im MVP |
 | Push-Erinnerungen | Should | im Gesamtumfang, nicht im MVP |
 | Rolle Betreuer, Eltern-Accounts | nicht geplant | im Gesamtumfang, nicht im MVP |
+
+## Umsetzungsstand 12.11.2026 (Sprint „Features & Design“)
+
+Für die vorgezogenen Nutzertests ist der Gesamtumfang umgesetzt (Details und Tests in der [Traceability](../traceability.md)):
+
+- **Terminplanung:** alle Event-Typen, Treffpunkt, Aufgaben, Notizen, Gegner, Aufstellung (Start/Bank), Termine bearbeiten und absagen, Spielplan-Import als .ics-Datei (z. B. Export von fussball.de), Push-Benachrichtigungen bei neuen, geänderten und abgesagten Terminen sowie Erinnerung vor der Rückmeldefrist. Videos zu Terminen gibt es noch nicht.
+- **Kommunikation:** Team-Chat, Ankündigungen (anheftbar), Umfragen mit Einfach- oder Mehrfachauswahl und Enddatum.
+- **Teamverwaltung:** mehrere Teams mit Team-Code, Mitgliederübersicht mit Position und Rückennummer, Rollen Trainer, Betreuer, Kassenwart, Spieler, Elternteil/Stellvertreter, Mitglieder ohne eigenes Konto, Konto löschen.
+- **Teamkasse:** manuelle Strafen aus dem Katalog, Katalog pflegen, automatische Mahngebühr, Beiträge, Einnahmen und Ausgaben mit Kassenstand, PayPal.me-Link, Beteiligungsstatistik.
