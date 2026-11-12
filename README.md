@@ -100,7 +100,7 @@ Details und Gesamtumfang: [docs/anforderungen/features-und-mvps.md](docs/anforde
 - `docs/interviews` – Interviews und Feedback-Matrix
 - `docs/architektur` – Komponenten, Sequenz, Klassendiagramm, ER-Modell, Architekturbegründung
 - `docs/traceability.md` – Feedback → Anforderung → Code → Test
-- `docs/testing` – Akzeptanzkriterien und Teststrategie
+- `docs/testing` – Akzeptanzkriterien, Teststrategie und Nutzertest (Leitfaden, Testaufgaben mit Zeitmessung, SUS-Fragebogen, druckfertige Bögen)
 - `docs/coding-guidelines.md` – Coding-Standards, Commit- und Review-Regeln (automatisch geprüft per GitHub Actions)
 - `docs/team.md` – Rollen und Arbeitsweise
 
