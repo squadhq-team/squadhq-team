@@ -58,6 +58,14 @@ Neue, geänderte und abgesagte Termine, neue Strafen, Ankündigungen und Umfrage
 3. Neu deployen. Im Profil erscheint dann „Benachrichtigungen an“. Auf dem iPhone geht Push nur, wenn SquadHQ über „Teilen → Zum Home-Bildschirm“ hinzugefügt und von dort geöffnet wurde.
 Ohne die Schlüssel läuft die App normal, nur ohne Push.
 
+## Erinnerung per E-Mail
+Derselbe tägliche Job schickt allen, die bei einem Termin mit Rückmeldefrist in den nächsten 30 Stunden noch nicht geantwortet haben, zusätzlich eine Mail mit Link zum Termin (Stellvertreter bekommen sie für ihre Mitglieder mit). Das geht auf jedem Handy, auch ohne Home-Bildschirm. Jede Person kann sie im Profil unter „Benachrichtigungen“ abschalten; an Testkonten (`@squadhq.test`) geht nie eine Mail.
+1. Dasselbe Gmail-Konto und App-Passwort wie beim SMTP für Supabase verwenden (siehe oben, Punkt 4).
+2. In Vercel (Production) und lokal in `.env` eintragen: `SMTP_USER` = Gmail-Adresse, `SMTP_PASS` = App-Passwort (Leerzeichen sind egal). Ein anderer Anbieter geht mit `SMTP_HOST` und `SMTP_PORT`.
+3. Dafür muss auch `CRON_SECRET` gesetzt sein (siehe Push), sonst lehnt der Job den Aufruf von Vercel ab.
+4. Neu deployen. Im Profil erscheint dann „Erinnerung per E-Mail ist an“.
+Ohne `SMTP_USER`/`SMTP_PASS` läuft die App normal, nur ohne Erinnerungs-Mails. Neue Spalte `User.emailReminders`: vor dem Deploy `npx prisma db push` gegen die Live-Datenbank (löscht keine Daten).
+
 Weitere Schalter: `SITE_URL` legt die Adresse für Links in Mails fest (sonst die aufgerufene Adresse).
 
 ## Auf Vercel deployen

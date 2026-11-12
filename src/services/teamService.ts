@@ -221,6 +221,11 @@ export async function updateProfile(
   });
 }
 
+/** Erinnerung vor der Rückmeldefrist per E-Mail an- oder abschalten (#26). */
+export async function setEmailReminders(userId: string, on: boolean) {
+  await prisma.user.update({ where: { id: userId }, data: { emailReminders: on } });
+}
+
 /**
  * Konto löschen (Datenschutz): Name, Kontaktdaten und Anmeldung werden entfernt, das Mitglied verlässt das Team.
  * Strafen und Protokoll bleiben als „Gelöschtes Mitglied“ erhalten, damit die Kasse nachvollziehbar bleibt.

@@ -20,7 +20,14 @@ import {
 } from "@/lib/auth";
 import { registerUser } from "@/lib/registration";
 import { handle, text, withParam } from "@/lib/actionUtils";
-import { createTeam, deleteAccount, joinTeam, leaveTeam, updateProfile } from "@/services/teamService";
+import {
+  createTeam,
+  deleteAccount,
+  joinTeam,
+  leaveTeam,
+  setEmailReminders,
+  updateProfile,
+} from "@/services/teamService";
 import { removeSubscription, saveSubscription } from "@/services/pushService";
 
 /** Adresse der App (z. B. https://squadhq-omega.vercel.app) für Links in Mails von Supabase. */
@@ -126,6 +133,16 @@ export async function updateProfileAction(formData: FormData) {
       shirtNumber: text(formData, "shirtNumber"),
     });
     return { info: "Profil gespeichert." };
+  });
+}
+
+/** Erinnerung per E-Mail an- oder abschalten (#26). */
+export async function setEmailRemindersAction(formData: FormData) {
+  await handle(formData, "/profil", async () => {
+    const user = await assertUser();
+    const on = text(formData, "on") === "1";
+    await setEmailReminders(user.id, on);
+    return { info: on ? "E-Mail-Erinnerungen sind an." : "E-Mail-Erinnerungen sind aus." };
   });
 }
 

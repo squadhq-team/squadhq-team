@@ -107,25 +107,27 @@ model Team {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  name         String
-  role         Role
+  id             String    @id @default(cuid())
+  name           String
+  role           Role
   /// null = noch in keinem Team (direkt nach der Registrierung) oder ausgetreten
-  teamId       String?
-  phone        String?
+  teamId         String?
+  phone          String?
   /// Spielposition, z. B. Torwart, Abwehr (#51)
-  position     String?
-  shirtNumber  Int?
+  position       String?
+  shirtNumber    Int?
   /// Anmeldung über Supabase Auth: ID des Kontos in auth.users (UUID). Demo-Personen und Mitglieder ohne Konto haben keins.
-  authId       String?   @unique
-  email        String?   @unique
+  authId         String?   @unique
+  email          String?   @unique
   /// Stellvertreter bzw. Elternteil, das für dieses Mitglied zu- und absagen darf
-  managedById  String?
+  managedById    String?
+  /// Erinnerung vor der Rückmeldefrist auch per E-Mail (#26), im Profil abschaltbar
+  emailReminders Boolean   @default(true)
   /// Gesetzt, wenn das Konto gelöscht wurde: Name und Kontaktdaten sind dann entfernt, Protokoll bleibt vollständig
-  deletedAt    DateTime?
+  deletedAt      DateTime?
   /// Veraltet seit dem Umstieg auf Supabase Auth (10.11.2026), wird nicht mehr gelesen oder geschrieben.
-  passwordHash String?
-  createdAt    DateTime  @default(now())
+  passwordHash   String?
+  createdAt      DateTime  @default(now())
 
   team             Team?              @relation(fields: [teamId], references: [id])
   managedBy        User?              @relation("Stellvertretung", fields: [managedById], references: [id], onDelete: SetNull)

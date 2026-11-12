@@ -5,7 +5,7 @@ Fünf Schichten (Präsentation, Anwendung, Services, Fachlogik, Datenzugriff) mi
 
 ## Kern-Entitäten (Stand 12.11.2026)
 - **Team:** Name, Team-Code zum Beitreten, PayPal.me-Name, Demo-Kennzeichen; alle anderen Daten gehören zu genau einem Team
-- **User:** Name, Rolle (TRAINER, ASSISTANT, CASHIER, PLAYER, GUARDIAN), Team, Handynummer, Position, Rückennummer, E-Mail, Verknüpfung zum Konto in Supabase Auth (authId), Stellvertreter
+- **User:** Name, Rolle (TRAINER, ASSISTANT, CASHIER, PLAYER, GUARDIAN), Team, Handynummer, Position, Rückennummer, E-Mail, Verknüpfung zum Konto in Supabase Auth (authId), Stellvertreter, Erinnerung per E-Mail an/aus (emailReminders)
 - **TrainingSession:** Termin mit Typ (Training, Spiel, Turnier, Feier, Sonstiges), Beginn, Rückmeldefrist, Ort, Treffpunkt, Aufgaben, Notiz, Gegner, abgesagt
 - **Attendance:** Status (ATTENDING, EXCUSED, UNSURE, INJURED, UNEXCUSED), Begründung, Aufstellung (Start/Bank, Position)
 - **PenaltyRule:** Position im Katalog, Titel, Betrag, Auslöser

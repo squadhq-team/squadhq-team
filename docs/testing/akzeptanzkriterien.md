@@ -72,7 +72,7 @@ Getestet in `tests/payments.test.ts` und `tests/p4Flow.db.test.ts`.
 
 ## Testergebnisse Sprint „Features & Design“ (12.11.2026)
 
-Lauf am 12.11.2026 gegen eine lokale, leere PostgreSQL-16-Testdatenbank: `RUN_DB_TESTS=1 npm test` **103 von 103 bestanden**; `npm test` ohne Datenbank 82 bestanden, 21 übersprungen; Lint, Formatierung, Typen und `npm run build` ohne Fehler.
+Lauf am 12.11.2026 gegen eine lokale, leere PostgreSQL-16-Testdatenbank: `RUN_DB_TESTS=1 npm test` **112 von 112 bestanden**; `npm test` ohne Datenbank 88 bestanden, 24 übersprungen; Lint, Formatierung, Typen und `npm run build` ohne Fehler.
 
 | Ebene | Datei | Tests | Ergebnis |
 |---|---|---|---|
@@ -81,13 +81,15 @@ Lauf am 12.11.2026 gegen eine lokale, leere PostgreSQL-16-Testdatenbank: `RUN_DB
 | Unit | tests/payments.test.ts (REQ-PEN-04, AK4, Überfällige) | 19 | bestanden |
 | Unit | tests/registration.test.ts (Registrierung, Startseite je Konto, Uhrzeit) | 16 | bestanden |
 | Unit | tests/features.test.ts (Rechte AK9, Team-Code, Testkonten, manuelle Strafe, Mahngebühr-Wochen, Kassenstand, PayPal-Link, Beteiligung, Spielplan-Import) | 24 | bestanden |
+| Unit | tests/erinnerungen.test.ts (#26 Empfänger und Inhalt der Erinnerungs-Mail) | 6 | bestanden |
 | Komponente (mit DB) | tests/penaltyFlow.db.test.ts (AK1–AK3, AK5) | 4 | bestanden |
 | Komponente (mit DB) | tests/p4Flow.db.test.ts (MVP-1, MVP-4, MVP-5, MVP-6/AK6, Registrierung) | 6 | bestanden |
 | Komponente (mit DB) | tests/features.db.test.ts (AK7, AK8, Rollen, Stellvertreter, Spiel-Strafe Pos. 9, manuelle Strafe, Mahngebühr, Kassenbuch, Beiträge, Umfrage, Import, Demo-Team gesperrt) | 10 | bestanden |
 | Komponente (mit DB) | tests/auditLogSchutz.db.test.ts (REQ-AUD-01, Regressionstest D-01) | 1 | bestanden |
-| **Summe** | | **103** | **103 bestanden** |
+| Komponente (mit DB) | tests/erinnerungen.db.test.ts (#26 tägliche Erinnerung per Push und E-Mail, Mailserver als Attrappe) | 3 | bestanden |
+| **Summe** | | **112** | **112 bestanden** |
 
-Seit dem Ausbau der Demo-Anmeldung (12.11.2026) entfallen die zwei Tests der signierten Demo-Cookies (vorher 105). Zusätzlich wurden alle Seiten für Trainer, Kassenwart und Spieler in der Handy-Ansicht (iPhone 13, Playwright) auf einem lokalen Produktions-Build aufgerufen: keine Fehlerseite, keine Fehler in der Browser-Konsole.
+Seit dem Ausbau der Demo-Anmeldung (12.11.2026) entfallen die zwei Tests der signierten Demo-Cookies (vorher 105); mit der Erinnerung per E-Mail kamen 9 Tests dazu. Zusätzlich wurden alle Seiten für Trainer, Kassenwart und Spieler in der Handy-Ansicht (iPhone 13, Playwright) auf einem lokalen Produktions-Build aufgerufen: keine Fehlerseite, keine Fehler in der Browser-Konsole.
 
 ## Testergebnisse
 
