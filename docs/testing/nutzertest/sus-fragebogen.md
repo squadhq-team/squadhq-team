@@ -5,7 +5,7 @@ System Usability Scale (SUS) nach Brooke (1996), deutsche Fassung nach Rummel (2
 ## Angaben zur Person (anonym)
 
 - Kürzel (trägt das Team ein): T__
-- Getestete Rolle: ☐ Spieler ☐ Trainer ☐ Kassenwart
+- Getestete Rolle: ☐ Spieler ☐ Trainer ☐ Kassenwart (Kassenwart-Person: Kassenwart ankreuzen)
 - Rolle im echten Team: ☐ Spieler ☐ Trainer/Betreuer ☐ Kassenwart ☐ keine
 - Alter: ☐ unter 20 ☐ 20–29 ☐ 30–39 ☐ 40 und älter
 - Wie organisiert ihr euer Team bisher? ☐ WhatsApp ☐ SpielerPlus ☐ andere App ☐ Zettel/Liste
