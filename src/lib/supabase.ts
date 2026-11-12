@@ -5,7 +5,7 @@
  * Benötigte Umgebungsvariablen (nur auf dem Server, nicht im Browser):
  * - SUPABASE_URL       z. B. https://<projekt>.supabase.co
  * - SUPABASE_ANON_KEY  „anon public“-Key aus Supabase → Project Settings → API
- * Fehlen sie, läuft die App weiter, nur die Anmeldung mit E-Mail ist abgeschaltet (Demo-Anmeldung geht weiter).
+ * Fehlen sie, startet die App zwar, aber niemand kann sich anmelden (die Startseite zeigt einen Hinweis).
  */
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";

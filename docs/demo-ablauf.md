@@ -1,5 +1,7 @@
 # Demo-Ablauf P4 (ca. 4 Minuten)
 
+> Stand P4. Seit 12.11.2026 gibt es keine Ein-Klick-Demo-Anmeldung mehr: Anmelden geht mit den Testkonten aus der README (Trainer Jan Petersen, Spieler Paul Thomsen, Kassenwart Karl Brandt). Schritte, die andere Personen brauchen (Tim, Noah), übernimmt Paul bzw. der Trainer setzt die Anwesenheit.
+
 Vorher (am Vortag abends): `npm run db:reset`, damit die Demo-Daten zum Präsentationstag passen. Live-App: https://squadhq-omega.vercel.app
 
 Neu seit P3 sind die Schritte 1, 3, 6, 7 und 8.

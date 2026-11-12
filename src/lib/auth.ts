@@ -2,49 +2,34 @@
  * REQ-SEC-01: Anmeldung und rollenbasiertes Rechtesystem.
  * - Echte Konten: Supabase Auth (E-Mail + Passwort, Passwort vergessen). Supabase verwaltet Passwort und Sitzung,
  *   die Sitzung steht in signierten Cookies von Supabase; über User.authId ist das Konto mit unserem Nutzer verknüpft.
- * - Demo-Anmeldung für Präsentationen: Personen ohne Konto per Klick, gemerkt in einem eigenen, signierten Cookie.
- *   Abschaltbar mit der Umgebungsvariable DEMO_LOGIN=off.
+ * - Zum Ausprobieren gibt es Testkonten im Demo-Team (prisma/testkonten.ts, Zugangsdaten in der README).
  * Seiten und Actions nutzen nur getCurrentUser/requireMember/assertMember und merken vom Anmeldeweg nichts.
  * Rechte stehen in einer Tabelle (src/domain/permissions.ts) und werden hier mit `can()` abgefragt.
  */
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { Team, User } from "@prisma/client";
 import { prisma } from "./db";
 import { isTestAccountEmail, can as roleCan, type Permission } from "@/domain/permissions";
-import { cookieSecret, sign, verify } from "./signedCookie";
 import { createSupabaseServerClient, isSupabaseConfigured } from "./supabase";
 import { ensureAppUser, translateAuthError, validateNewPassword } from "./registration";
-
-export const DEMO_COOKIE = "squadhq_demo";
 
 /** Anmeldung mit E-Mail und Passwort möglich? (Supabase ist eingerichtet) */
 export function isEmailLoginEnabled(): boolean {
   return isSupabaseConfigured();
 }
 
-/** Demo-Anmeldung an? Standard: an (für Präsentationen); DEMO_LOGIN=off schaltet sie ab. */
-export function isDemoLoginEnabled(): boolean {
-  return process.env.DEMO_LOGIN !== "off";
-}
-
 export async function getCurrentUser(): Promise<User | null> {
   const supabase = await createSupabaseServerClient();
-  if (supabase) {
-    // getUser() prüft die Sitzung bei Supabase (nicht nur das Cookie), deshalb ist das Ergebnis vertrauenswürdig
-    const { data } = await supabase.auth.getUser();
-    if (data.user)
-      return ensureAppUser({
-        id: data.user.id,
-        email: data.user.email,
-        name: data.user.user_metadata?.name,
-        joinCode: data.user.user_metadata?.joinCode,
-      });
-  }
-  if (!isDemoLoginEnabled()) return null;
-  const id = verify((await cookies()).get(DEMO_COOKIE)?.value, cookieSecret());
-  if (!id) return null;
-  return prisma.user.findFirst({ where: { id, deletedAt: null, team: { isDemo: true } } });
+  if (!supabase) return null;
+  // getUser() prüft die Sitzung bei Supabase (nicht nur das Cookie), deshalb ist das Ergebnis vertrauenswürdig
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) return null;
+  return ensureAppUser({
+    id: data.user.id,
+    email: data.user.email,
+    name: data.user.user_metadata?.name,
+    joinCode: data.user.user_metadata?.joinCode,
+  });
 }
 
 /** Angemeldetes Mitglied eines Teams (teamId ist gesetzt). */
@@ -102,37 +87,12 @@ export async function isInDemoTeam(user: Pick<User, "teamId">): Promise<boolean>
   return !!(await prisma.team.findUnique({ where: { id: user.teamId }, select: { isDemo: true } }))?.isDemo;
 }
 
-/** Demo-Anmeldung: die Personen des Demo-Teams zur Auswahl; leer, wenn die Demo-Anmeldung aus ist. */
-export async function listLoginUsers(): Promise<User[]> {
-  if (!isDemoLoginEnabled()) return [];
-  return prisma.user.findMany({
-    where: { deletedAt: null, team: { isDemo: true } },
-    orderBy: [{ role: "asc" }, { name: "asc" }],
-  });
-}
-
-/** Demo-Anmeldung: nur Personen des Demo-Teams. Meldet eine laufende Supabase-Sitzung vorher ab. */
-export async function signIn(userId: string): Promise<User> {
-  if (!isDemoLoginEnabled()) throw new Error("Die Demo-Anmeldung ist abgeschaltet.");
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, include: { team: true } });
-  if (!user.team?.isDemo || user.deletedAt) throw new Error("Dieses Konto meldet sich mit E-Mail und Passwort an.");
-  await (await createSupabaseServerClient())?.auth.signOut();
-  (await cookies()).set(DEMO_COOKIE, sign(user.id, cookieSecret()), {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    secure: process.env.NODE_ENV === "production",
-  });
-  return user;
-}
-
 /** Anmeldung mit E-Mail und Passwort über Supabase Auth. */
 export async function signInWithPassword(email: string, password: string): Promise<User> {
   const supabase = await createSupabaseServerClient();
   if (!supabase) throw new Error("Die Anmeldung mit E-Mail ist noch nicht eingerichtet.");
   const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
   if (error || !data.user) throw new Error(translateAuthError(error?.message ?? ""));
-  (await cookies()).delete(DEMO_COOKIE);
   return ensureAppUser({
     id: data.user.id,
     email: data.user.email,
@@ -141,10 +101,9 @@ export async function signInWithPassword(email: string, password: string): Promi
   });
 }
 
-/** Abmelden: Supabase-Sitzung beenden und Demo-Cookie löschen. */
+/** Abmelden: Supabase-Sitzung beenden. */
 export async function signOut(): Promise<void> {
   await (await createSupabaseServerClient())?.auth.signOut();
-  (await cookies()).delete(DEMO_COOKIE);
 }
 
 /**
@@ -193,7 +152,6 @@ export async function exchangeAuthLink(params: {
     const { error } = await supabase.auth.exchangeCodeForSession(params.code);
     ok = !error;
   }
-  if (ok) (await cookies()).delete(DEMO_COOKIE);
   return ok;
 }
 

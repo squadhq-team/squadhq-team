@@ -307,7 +307,6 @@ classDiagram
 
   class ServerActions {
     <<Modul>>
-    +login(formData) void
     +loginWithPassword(formData) void
     +registerAction(formData) void
     +resendConfirmationAction(formData) void
@@ -368,7 +367,6 @@ classDiagram
   class Auth {
     <<Modul>>
     +isEmailLoginEnabled() Boolean
-    +isDemoLoginEnabled() Boolean
     +getCurrentUser() User?
     +can(user, permission) Boolean
     +requireMember(permission?) Member
@@ -376,8 +374,6 @@ classDiagram
     +requireUser() User
     +assertUser() User
     +isInDemoTeam(user) Boolean
-    +listLoginUsers() User[]
-    +signIn(userId) User
     +signInWithPassword(email, password) User
     +signOut() void
     +requestPasswordReset(email, redirectTo) void

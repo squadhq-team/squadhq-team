@@ -14,7 +14,6 @@ import {
   homeFor,
   requestPasswordReset,
   resendConfirmation,
-  signIn,
   signInWithPassword,
   signOut,
   updatePassword,
@@ -31,12 +30,6 @@ async function siteOrigin(): Promise<string> {
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
   const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   return `${proto}://${host}`;
-}
-
-/** Demo-Anmeldung per Klick (Präsentation, nur Demo-Team). */
-export async function login(formData: FormData) {
-  const user = await signIn(text(formData, "userId"));
-  redirect(homeFor(user));
 }
 
 /** Anmeldung mit E-Mail und Passwort (Supabase Auth). */
