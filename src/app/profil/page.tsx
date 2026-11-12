@@ -2,10 +2,18 @@ import Link from "next/link";
 import { isEmailLoginEnabled, isInDemoTeam, requireUser } from "@/lib/auth";
 import { ROLE_HINT, ROLE_LABEL } from "@/lib/format";
 import { pushPublicKey } from "@/services/pushService";
+import { mailConfigured } from "@/services/mailService";
 import { Avatar, Card, Field, PageHeader, btn, inputClass } from "@/components/ui";
 import { ActionForm, SubmitButton } from "@/components/SubmitButton";
 import { PushToggle } from "@/components/PushToggle";
-import { deleteAccountAction, leaveTeamAction, logout, updatePasswordAction, updateProfileAction } from "../actions";
+import {
+  deleteAccountAction,
+  leaveTeamAction,
+  logout,
+  setEmailRemindersAction,
+  updatePasswordAction,
+  updateProfileAction,
+} from "../actions";
 
 /** Mein Profil (#51): Name, Kontakt, Position; Passwort ändern, Benachrichtigungen, Team verlassen, Konto löschen. */
 export default async function ProfilePage() {
@@ -57,6 +65,22 @@ export default async function ProfilePage() {
             Neue Termine, Absagen, Ankündigungen und Erinnerungen vor der Rückmeldefrist.
           </p>
           <PushToggle publicKey={pushPublicKey()} />
+          {user.email && mailConfigured() && (
+            <ActionForm
+              action={setEmailRemindersAction}
+              className="mt-4 flex items-center gap-3 border-t border-stone-100 pt-4"
+            >
+              <input type="hidden" name="on" value={user.emailReminders ? "0" : "1"} />
+              <p className="flex-1 text-sm">
+                {user.emailReminders
+                  ? "Erinnerung per E-Mail ist an: Wenn du kurz vor der Frist noch nicht geantwortet hast, bekommst du eine Mail."
+                  : "Erinnerung per E-Mail ist aus."}
+              </p>
+              <SubmitButton className={btn.secondary}>
+                {user.emailReminders ? "Ausschalten" : "Einschalten"}
+              </SubmitButton>
+            </ActionForm>
+          )}
         </Card>
       )}
 

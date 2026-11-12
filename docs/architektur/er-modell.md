@@ -81,6 +81,7 @@ erDiagram
     string authId UK "optional, Konto in Supabase Auth"
     string email UK "optional"
     string managedById FK "optional, Stellvertreter oder Elternteil"
+    boolean emailReminders "Erinnerung per E-Mail, Standard an"
     datetime deletedAt "optional, Konto gelöscht"
     string passwordHash "veraltet, ungenutzt"
     datetime createdAt
@@ -227,6 +228,7 @@ erDiagram
 | Beitreten per `joinCode` (6 Zeichen ohne 0/O, 1/I/L), Demo-Team (`isDemo`) nicht beitretbar | einfach weiterzugeben (WhatsApp), keine Verwechslung beim Abtippen; Präsentationsdaten bleiben von echten Teams getrennt |
 | Rolle am `User`, je Person ein Team | ein Konto gehört zu einer Mannschaft; Rechte je Rolle in `src/domain/permissions.ts` (REQ-SEC-01) |
 | `managedById` (Stellvertretung) | Eltern oder Betreuer sagen für Jugendliche oder Mitglieder ohne Konto zu und ab |
+| `emailReminders` (Standard an) | Erinnerung vor der Rückmeldefrist auch per E-Mail (#26), jede Person kann sie im Profil abschalten |
 | Konto löschen setzt `deletedAt` und leert Name und Kontakt | Datenschutz; Forderungen und Protokoll bleiben anonym nachvollziehbar |
 | Beträge als Integer in Cent | keine Rundungsfehler bei Teilzahlungen |
 | `PENDING_APPROVAL` als eigener Status | Trainer will erst bestätigen (Interview Trainer) |

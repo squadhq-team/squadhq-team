@@ -23,7 +23,8 @@ export default function PrivacyPage() {
           <p>
             <strong>Wo?</strong> Datenbank und Anmeldung bei Supabase (Rechenzentrum in der EU, Stockholm), die App
             läuft bei Vercel. Push-Benachrichtigungen laufen über den Dienst deines Browsers (z. B. Google oder Apple),
-            nur wenn du sie einschaltest.
+            nur wenn du sie einschaltest. Erinnerungen vor der Rückmeldefrist schicken wir per E-Mail über das
+            Gmail-Konto des Teams; abschalten kannst du sie im Profil unter „Benachrichtigungen“.
           </p>
           <p>
             <strong>Löschen:</strong> Unter Profil → „Konto löschen“ entfernst du Name, Kontaktdaten und Anmeldung.

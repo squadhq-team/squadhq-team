@@ -23,15 +23,17 @@
 | 3 Services | Teamkasse & Zahlungen | PaymentService | `src/services/paymentService.ts` |
 | 3 Services | Neuigkeiten & Chat | NewsService | `src/services/newsService.ts` |
 | 3 Services | Statistik | StatsService | `src/services/statsService.ts` |
-| 3 Services | Benachrichtigungen | PushService | `src/services/pushService.ts`, Service Worker `public/sw.js` |
+| 3 Services | Benachrichtigungen | PushService, ReminderService, MailService | `src/services/pushService.ts`, `src/services/reminderService.ts`, `src/services/mailService.ts`, Service Worker `public/sw.js` |
 | 3 Services | Protokollierung | AuditService | `src/services/auditService.ts` |
 | 4 Fachlogik | Rechte | Permissions | `src/domain/permissions.ts` |
 | 4 Fachlogik | Regelverwaltung | Penalties | `src/domain/penalties.ts` |
 | 4 Fachlogik | Spielplan-Import | Ics | `src/domain/ics.ts` |
+| 4 Fachlogik | Erinnerungs-Empfänger | Reminders | `src/domain/reminders.ts` |
 | 5 Datenzugriff | Datenbankzugriff | Prisma Client | `src/lib/db.ts` |
 | – | Datenbank | PostgreSQL (Supabase) | `prisma/schema.prisma` |
 | – | Supabase Auth (extern) | Supabase Auth | `src/lib/supabase.ts`, `src/middleware.ts` |
 | – | Push-Dienst des Browsers (extern) | Web Push | Bibliothek `web-push` |
+| – | Mailserver (extern) | SMTP, z. B. Gmail | Bibliothek `nodemailer` |
 
 Die fünf Schichten sind dieselben wie auf der Folie „Schichtenarchitektur“ und in der [Architekturbegründung](architekturbegruendung.md). Umbenannt im Sprint „Features & Design“ (12.11.2026): „Spieler-Ansicht“ und „Trainer-Dashboard“ sind in „Startseite“, „Termine“ und „Kasse“ aufgegangen (eine Oberfläche für alle Rollen, Inhalte je nach Recht), „Kassenwart-Ansicht“ heißt „Kasse“, „Einloggen & Rollenprüfung“ heißt „Einloggen & Rechteprüfung“, „Zahlungen verbuchen“ heißt „Teamkasse & Zahlungen“.
 

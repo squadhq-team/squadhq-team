@@ -76,7 +76,7 @@ Details zu Supabase, Vercel, Mailversand und Push-Benachrichtigungen: [docs/setu
 Fünf Schichten, gleiche Namen wie im [Komponentendiagramm](docs/architektur/komponenten.md) (siehe [Namensliste](docs/architektur/namensliste.md)):
 - `src/app` – Präsentation (Seiten Start, Termine, Kasse, Team, Chat, Neuigkeiten, Profil, Protokoll, Anmeldung) und Server Actions („Eingaben verarbeiten“)
 - `src/lib/auth.ts` – Einloggen & Rechteprüfung (Rechte-Tabelle in `src/domain/permissions.ts`)
-- `src/services` – Teams & Mitglieder (TeamService), Zu-/Absagen & Anwesenheit (AttendanceService), Strafen (PenaltyEngine), Kasse & Zahlungen (PaymentService), Neuigkeiten & Chat (NewsService), Statistik, Push, Protokollierung (AuditService)
+- `src/services` – Teams & Mitglieder (TeamService), Zu-/Absagen & Anwesenheit (AttendanceService), Strafen (PenaltyEngine), Kasse & Zahlungen (PaymentService), Neuigkeiten & Chat (NewsService), Statistik, Benachrichtigungen (Push, Erinnerung per E-Mail), Protokollierung (AuditService)
 - `src/domain` – Regelverwaltung: Rechte, Strafenkatalog, Fälligkeit, Mahngebühr, Saldo, Kalender-Import (reine Funktionen, unit-getestet)
 - `src/components` – UI-Bausteine, u. a. Buttons mit Lade- und Gespeichert-Anzeige
 - `src/lib` – außerdem Datenbank-Client (Prisma), Supabase und Formatierung
@@ -91,7 +91,7 @@ Fünf Schichten, gleiche Namen wie im [Komponentendiagramm](docs/architektur/kom
 5. Zahlungsverfolgung durch den Kassenwart (bar oder PayPal)
 6. Lückenloses Audit-Log
 
-Dazu seit dem Sprint „Features & Design“: Teams mit Team-Code und Rollen (Trainer, Betreuer, Kassenwart, Spieler, Elternteil/Stellvertreter), Spiele und Events mit Treffpunkt und Aufstellung, Spielplan-Import, manuelle Strafen, automatische Mahngebühr, Beiträge, Einnahmen und Ausgaben, PayPal-Link, Ankündigungen, Umfragen, Chat, Statistik und Push-Erinnerungen.
+Dazu seit dem Sprint „Features & Design“: Teams mit Team-Code und Rollen (Trainer, Betreuer, Kassenwart, Spieler, Elternteil/Stellvertreter), Spiele und Events mit Treffpunkt und Aufstellung, Spielplan-Import, manuelle Strafen, automatische Mahngebühr, Beiträge, Einnahmen und Ausgaben, PayPal-Link, Ankündigungen, Umfragen, Chat, Statistik sowie Erinnerungen per Push und E-Mail.
 
 Details und Gesamtumfang: [docs/anforderungen/features-und-mvps.md](docs/anforderungen/features-und-mvps.md)
 

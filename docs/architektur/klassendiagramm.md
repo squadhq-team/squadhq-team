@@ -81,6 +81,7 @@ classDiagram
     +Int? shirtNumber
     +String? authId
     +String? email
+    +Boolean emailReminders
     +DateTime? deletedAt
     +String? passwordHash (veraltet)
     +DateTime createdAt
@@ -316,6 +317,7 @@ classDiagram
     +createTeamAction(formData) void
     +joinTeamAction(formData) void
     +updateProfileAction(formData) void
+    +setEmailRemindersAction(formData) void
     +leaveTeamAction(formData) void
     +deleteAccountAction(formData) void
     +savePushSubscription(sub) void
@@ -406,6 +408,7 @@ classDiagram
     +addMemberWithoutAccount(teamId, actorId, name, managedById?) User
     +setGuardian(teamId, userId, managedById) void
     +updateProfile(userId, data) void
+    +setEmailReminders(userId, on) void
     +deleteAccount(userId) void
     +getTeamName(teamId) String
     +listRespondents(user) User[]
@@ -484,12 +487,28 @@ classDiagram
   class PushService {
     <<Modul>>
     +pushPublicKey() String?
+    +pushConfigured() Boolean
     +saveSubscription(userId, sub) void
     +removeSubscription(userId, endpoint) void
     +hasSubscription(userId) Boolean
     +notifyUsers(userIds, message) void
     +notifyTeam(teamId, message, opts) void
-    +sendDeadlineReminders(now) Int
+  }
+  class ReminderService {
+    <<Modul>>
+    +sendDeadlineReminders(now, deps?) ReminderResult
+    +reminderMessage(mail, session, baseUrl) MailMessage
+  }
+  class MailService {
+    <<Modul>>
+    +mailConfigured() Boolean
+    +appUrl() String
+    +createMailer() Mailer?
+    +escapeHtml(value) String
+  }
+  class Reminders {
+    <<Modul>>
+    +reminderMails(missing) ReminderMail[]
   }
   class Permissions {
     <<Modul>>
@@ -568,14 +587,19 @@ classDiagram
   StatsService ..> TeamService : nutzt
   StatsService ..> Penalties : nutzt
   PushService ..> Permissions : nutzt
+  ReminderService ..> PushService : nutzt
+  ReminderService ..> MailService : nutzt
+  ReminderService ..> Reminders : nutzt
+  ReminderService ..> Permissions : nutzt
+  Reminders ..> Permissions : nutzt
 ```
 
 Hinweise zum Diagramm:
 
-- Dateien der Module: `ServerActions` = `src/app/actions.ts` (Anmeldung, Team gründen/beitreten, Profil, Push), `TerminActions` = `src/app/termine/actions.ts`, `KasseActions` = `src/app/kasse/actions.ts`, `TeamActions` = `src/app/team/actions.ts`, `NeuigkeitenActions` = `src/app/neuigkeiten/actions.ts`; alle fünf bilden zusammen die Komponente „Eingaben verarbeiten“. `Auth` = `src/lib/auth.ts`, `Registration` = `src/lib/registration.ts`, Services = `src/services/…`, `Permissions` = `src/domain/permissions.ts` (Rechte-Tabelle, REQ-SEC-01), `Penalties` = `src/domain/penalties.ts` (Regelverwaltung), `Ics` = `src/domain/ics.ts` (Spielplan-Import); die drei Fachlogik-Module sind reine Funktionen ohne Datenbank.
-- Welche Tabellen die Module schreiben: TeamService → `Team`, `User`, `AuditLog`; AttendanceService → `TrainingSession`, `Attendance`, `AuditLog`; PenaltyEngine → `PenaltyEntry`, `PenaltyRule`, `AuditLog`; PaymentService → `PenaltyEntry`, `CashTransaction`, `Team.paypalMe`, `AuditLog`; NewsService → `Announcement`, `Poll`, `PollOption`, `PollVote`, `ChatMessage`; PushService → `PushSubscription`; Registration → `User`; AuditService → `AuditLog` (nur anlegen).
+- Dateien der Module: `ServerActions` = `src/app/actions.ts` (Anmeldung, Team gründen/beitreten, Profil, Push), `TerminActions` = `src/app/termine/actions.ts`, `KasseActions` = `src/app/kasse/actions.ts`, `TeamActions` = `src/app/team/actions.ts`, `NeuigkeitenActions` = `src/app/neuigkeiten/actions.ts`; alle fünf bilden zusammen die Komponente „Eingaben verarbeiten“. `Auth` = `src/lib/auth.ts`, `Registration` = `src/lib/registration.ts`, Services = `src/services/…`, `Permissions` = `src/domain/permissions.ts` (Rechte-Tabelle, REQ-SEC-01), `Penalties` = `src/domain/penalties.ts` (Regelverwaltung), `Ics` = `src/domain/ics.ts` (Spielplan-Import), `Reminders` = `src/domain/reminders.ts` (wer eine Erinnerungs-Mail bekommt); die vier Fachlogik-Module sind reine Funktionen ohne Datenbank. Den täglichen Erinnerungs-Job `src/app/api/cron/erinnerungen/route.ts` ruft Vercel Cron auf; er nutzt nur `ReminderService`.
+- Welche Tabellen die Module schreiben: TeamService → `Team`, `User`, `AuditLog`; AttendanceService → `TrainingSession`, `Attendance`, `AuditLog`; PenaltyEngine → `PenaltyEntry`, `PenaltyRule`, `AuditLog`; PaymentService → `PenaltyEntry`, `CashTransaction`, `Team.paypalMe`, `AuditLog`; NewsService → `Announcement`, `Poll`, `PollOption`, `PollVote`, `ChatMessage`; PushService → `PushSubscription`; ReminderService und MailService schreiben nichts (nur lesen und senden); Registration → `User`; AuditService → `AuditLog` (nur anlegen).
 - Die Abhängigkeiten (gestrichelte Pfeile) zeigen nur nach unten, genau wie im Komponentendiagramm: Server Actions → Auth/Services → Fachlogik. Innerhalb der Services gibt es keine Kreise. Die Seiten (Präsentation) sind keine Module mit Operationen und stehen deshalb nur im Komponentendiagramm.
-- Ergebnistypen: `Member` = `User` mit Team (angemeldet und in einem Team). `AttendanceList` = Termin und je Mitglied des Kaders seine Rückmeldung (oder keine). `PlayerAccount` = Saldo in Cent und sichtbare Forderungen. `TeamCash` = offene (mit überfällig) und bezahlte Forderungen, Summen, Salden je Mitglied, Kassenbuch und Kassenstand. `PaymentResult` = neuer Status, bezahlter und gebuchter Betrag. `CashBalance` = Einnahmen, Ausgaben, Kassenstand. `ImportResult` = angelegt, aktualisiert, übersprungen. `RegistrationResult` = neuer Nutzer und ob Supabase noch eine E-Mail-Bestätigung verlangt.
+- Ergebnistypen: `Member` = `User` mit Team (angemeldet und in einem Team). `AttendanceList` = Termin und je Mitglied des Kaders seine Rückmeldung (oder keine). `PlayerAccount` = Saldo in Cent und sichtbare Forderungen. `TeamCash` = offene (mit überfällig) und bezahlte Forderungen, Summen, Salden je Mitglied, Kassenbuch und Kassenstand. `PaymentResult` = neuer Status, bezahlter und gebuchter Betrag. `CashBalance` = Einnahmen, Ausgaben, Kassenstand. `ImportResult` = angelegt, aktualisiert, übersprungen. `RegistrationResult` = neuer Nutzer und ob Supabase noch eine E-Mail-Bestätigung verlangt. `ReminderResult` = Zahl der Push-Empfänger, verschickte und fehlgeschlagene Mails. `ReminderMail` = Adresse, Anrede, ob die Person selbst fehlt und für welche vertretenen Mitglieder. `Mailer` = offene Verbindung zum Mailserver (`send`, `close`).
 - `User.passwordHash` ist seit dem Umstieg auf Supabase Auth (10.11.2026) veraltet und wird nicht mehr benutzt.
 - Komposition (gefüllte Raute): Wird ein Termin gelöscht, werden seine Rückmeldungen mitgelöscht; ebenso Antworten und Stimmen einer Umfrage und die Push-Abos eines Mitglieds (`onDelete: Cascade` im Schema).
 - `PenaltyEntry`, `CashTransaction` und `AuditLog` sind bewusst nur assoziiert, nicht komponiert: Das Protokoll ist manipulationssicher (REQ-AUD-01). Eine Forderung oder Buchung mit Protokoll lässt sich nicht löschen (`onDelete: Restrict`), nur stornieren; Protokolleinträge selbst lehnt die Datenbank beim Ändern und Löschen ab (Trigger, `prisma/auditLogSchutz.ts`).

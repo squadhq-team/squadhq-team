@@ -1,5 +1,6 @@
 /**
- * PushService: Push-Benachrichtigungen aufs Handy (#26), z. B. neuer Termin, Absage, Ankündigung, Erinnerung vor der Frist.
+ * PushService: Push-Benachrichtigungen aufs Handy (#26), z. B. neuer Termin, Absage, Ankündigung, Erinnerung vor der Frist
+ * (die Erinnerung selbst plant der ReminderService).
  * Läuft nur, wenn VAPID_PUBLIC_KEY und VAPID_PRIVATE_KEY gesetzt sind (Anleitung: docs/setup.md); sonst passiert nichts.
  * Fehler beim Senden brechen nie die eigentliche Aktion ab.
  */
@@ -11,7 +12,7 @@ export function pushPublicKey(): string | null {
   return process.env.VAPID_PUBLIC_KEY || null;
 }
 
-function configured(): boolean {
+export function pushConfigured(): boolean {
   const pub = process.env.VAPID_PUBLIC_KEY;
   const priv = process.env.VAPID_PRIVATE_KEY;
   if (!pub || !priv) return false;
@@ -48,7 +49,7 @@ export interface PushMessage {
 
 /** An bestimmte Personen senden. Stellvertreter (Eltern) bekommen die Nachrichten ihrer Mitglieder mit. */
 export async function notifyUsers(userIds: string[], message: PushMessage) {
-  if (userIds.length === 0 || !configured()) return;
+  if (userIds.length === 0 || !pushConfigured()) return;
   try {
     const guardians = await prisma.user.findMany({
       where: { id: { in: userIds }, managedById: { not: null } },
@@ -82,7 +83,7 @@ export async function notifyTeam(
   message: PushMessage,
   opts: { squadOnly?: boolean; exceptUserId?: string } = {},
 ) {
-  if (!configured()) return;
+  if (!pushConfigured()) return;
   const members = await prisma.user.findMany({
     where: {
       teamId,
@@ -96,36 +97,4 @@ export async function notifyTeam(
     members.map((m) => m.id),
     message,
   );
-}
-
-/**
- * Erinnerung vor der Rückmeldefrist (läuft täglich per Vercel Cron, siehe vercel.json):
- * Wer bei einem Termin in den nächsten 30 Stunden Frist noch nicht geantwortet hat, bekommt eine Nachricht.
- */
-export async function sendDeadlineReminders(now: Date = new Date()) {
-  if (!configured()) return 0;
-  const sessions = await prisma.trainingSession.findMany({
-    where: {
-      cancelledAt: null,
-      startsAt: { gt: now },
-      responseDeadline: { gt: now, lte: new Date(now.getTime() + 30 * 3600_000) },
-    },
-    include: { attendances: { select: { userId: true } } },
-  });
-  let sent = 0;
-  for (const s of sessions) {
-    const squad = await prisma.user.findMany({
-      where: { teamId: s.teamId, deletedAt: null, role: { in: SQUAD_ROLES } },
-      select: { id: true },
-    });
-    const missing = squad.map((m) => m.id).filter((id) => !s.attendances.some((a) => a.userId === id));
-    if (missing.length === 0) continue;
-    await notifyUsers(missing, {
-      title: "Bitte zu- oder absagen",
-      body: `${s.title}: Rückmeldung bis ${new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" }).format(s.responseDeadline)}`,
-      url: `/termine/${s.id}`,
-    });
-    sent += missing.length;
-  }
-  return sent;
 }
