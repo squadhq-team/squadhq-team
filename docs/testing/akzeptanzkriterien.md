@@ -117,4 +117,40 @@ Durchgeführt am 10.11.2026 auf einem lokalen Produktions-Build (`npm run build`
 
 | Nr. | Gefunden | Beschreibung | Schwere | Status |
 |---|---|---|---|---|
-| D-01 | 10.11.2026 beim Testlauf P4 | Bei `RUN_DB_TESTS=1 npm test` schlug `tests/penaltyFlow.db.test.ts` in 1 von 27 Läufen im Setup fehl (`ERROR: tuple concurrently updated`). Ursache: Vitest startet beide DB-Testdateien parallel, und beide spielen gleichzeitig den Audit-Log-Schutz ein (`applyAuditLogSchutz`, `CREATE OR REPLACE FUNCTION …`). Betrifft nur die Tests, nicht die App: In der App wird der Schutz einmal per `npm run db:audit-schutz` eingespielt. | gering (sporadisch, nur Testumgebung) | offen. Umgehung: Testdateien nacheinander ausführen mit `RUN_DB_TESTS=1 npx vitest run --no-file-parallelism` (3 von 3 Läufen grün). Behebung nach P4 (Feature-Stopp bis P4). |
+| D-01 ([#56](https://github.com/squadhq-team/squadhq-team/issues/56)) | 10.11.2026 beim Testlauf P4 | Bei `RUN_DB_TESTS=1 npm test` wurden die Datenbank-Tests sporadisch rot. Nachgestellt am 12.11.2026: 6 von 100 Läufen rot, mit zwei Fehlerbildern: (a) `ERROR: tuple concurrently updated` im Setup (1×), (b) AK5 in `tests/penaltyFlow.db.test.ts`: ein Protokolleintrag ließ sich ändern (5×). Ursache: Vitest startet die DB-Testdateien parallel, und jede spielte in `beforeAll` den Audit-Log-Schutz (`applyAuditLogSchutz`) selbst ein. Die SQL-Anweisungen liefen einzeln ohne Transaktion: Zwei gleichzeitige `CREATE OR REPLACE FUNCTION` stoßen zusammen (a), und zwischen `DROP TRIGGER` und `CREATE TRIGGER` war das Audit-Log kurz ohne Trigger, sodass eine Änderung aus der anderen Testdatei durchkam (b). Fehlerbild (b) hätte theoretisch auch `npm run db:audit-schutz` auf der echten Datenbank betroffen (Bruchteile einer Sekunde während des Einspielens). | gering (sporadisch; in der App nur während des Einspielens möglich) | **behoben am 12.11.2026**, siehe „Behebung und Nachweis D-01“ unten. |
+
+### Behebung und Nachweis D-01 (12.11.2026)
+
+**Behebung**
+
+| Änderung | Datei | Wirkung |
+|---|---|---|
+| Alle Anweisungen des Audit-Log-Schutzes laufen in **einer Transaktion**, vorher eine Sperre `pg_advisory_xact_lock` | `prisma/auditLogSchutz.ts` | Andere Verbindungen sehen entweder den alten oder den neuen Schutz, nie einen Zustand ohne Trigger (behebt b). Gleichzeitige Aufrufe laufen nacheinander (behebt a). Gilt auch für `npm run db:audit-schutz` auf der echten Datenbank. |
+| Test-Datenbank wird **einmal vor allen Testdateien** vorbereitet (Audit-Log-Schutz, Katalogregel Pos. 8) | `tests/setup/dbGlobalSetup.ts`, `vitest.config.mts` (`globalSetup`) | Wie in der App wird der Schutz einmal eingespielt, nicht von jeder Testdatei parallel. Auch das gleichzeitige Anlegen der Katalogregel durch zwei Dateien auf einer leeren Datenbank (z. B. in der CI) entfällt. |
+| Neuer **Regressionstest** | `tests/auditLogSchutz.db.test.ts` | Spielt den Schutz fünfmal gleichzeitig ein, während eine zweite Verbindung ununterbrochen versucht, einen Protokolleintrag zu ändern. Erwartet: kein Fehler, kein Änderungsversuch kommt durch. |
+
+**Nachweis** (lokale PostgreSQL-16-Testdatenbank, nicht die Live-Datenbank)
+
+| Lauf | Code-Stand | Ergebnis |
+|---|---|---|
+| `RUN_DB_TESTS=1 npm test`, 100× hintereinander | vor der Behebung (`a5cfd82`) | **6 von 100 rot** (Fehler nachgestellt) |
+| Regressionstest `tests/auditLogSchutz.db.test.ts`, 20× | alter `applyAuditLogSchutz`, neuer Test | **20 von 20 rot** (`tuple concurrently updated`): Der Test erkennt den Defekt zuverlässig |
+| `RUN_DB_TESTS=1 npm test`, 200× hintereinander, bestehende Test-DB | nach der Behebung | **200 von 200 grün** (je 70 Tests) |
+| `RUN_DB_TESTS=1 npm test`, 50×, jedes Mal frisch angelegte leere Test-DB (wie in der CI) | nach der Behebung | **50 von 50 grün** (je 70 Tests) |
+| `npm test` ohne Datenbank | nach der Behebung | 59 bestanden, 11 übersprungen |
+| `npm run lint`, `npm run format:check`, `npm run typecheck`, `npm run db:audit-schutz` | nach der Behebung | ohne Fehler |
+
+Die Umgehung `--no-file-parallelism` wird nicht mehr gebraucht; die Tests laufen weiter parallel.
+
+**Teststand nach der Behebung**
+
+| Ebene | Datei | Tests | Ergebnis |
+|---|---|---|---|
+| Unit | tests/penalties.test.ts (REQ-PEN-02, REQ-PEN-03) | 9 | bestanden |
+| Unit | tests/strafenkatalog.test.ts (REQ-PEN-01) | 12 | bestanden |
+| Unit | tests/payments.test.ts (REQ-PEN-04, AK4, Überfällige) | 19 | bestanden |
+| Unit | tests/registration.test.ts (REQ-SEC-01, Registrierung, Uhrzeit) | 19 | bestanden |
+| Komponente (mit DB) | tests/penaltyFlow.db.test.ts (AK1–AK3, AK5) | 4 | bestanden |
+| Komponente (mit DB) | tests/p4Flow.db.test.ts (MVP-1, MVP-4, MVP-5, MVP-6/AK6, Registrierung) | 6 | bestanden |
+| Komponente (mit DB) | tests/auditLogSchutz.db.test.ts (REQ-AUD-01, Regressionstest D-01) | 1 | bestanden |
+| **Summe** | | **70** | **70 bestanden** |

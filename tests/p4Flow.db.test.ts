@@ -9,7 +9,6 @@ import { createSession, setByTrainer } from "@/services/attendanceService";
 import { approvePenalty } from "@/services/penaltyEngine";
 import { getTeamCash, recordPayment } from "@/services/paymentService";
 import { ensureAppUser } from "@/lib/registration";
-import { applyAuditLogSchutz } from "../prisma/auditLogSchutz";
 
 const run = process.env.RUN_DB_TESTS === "1";
 const DAY = 86_400_000;
@@ -21,20 +20,10 @@ describe.skipIf(!run)("P4-Abläufe (MVP-1, MVP-4, MVP-5, MVP-6, Registrierung)",
   let sessionId: string;
 
   beforeAll(async () => {
-    await applyAuditLogSchutz(prisma);
+    // Audit-Log-Schutz und Katalogregel Pos. 8 legt tests/setup/dbGlobalSetup.ts einmal vorab an (D-01)
     trainerId = (await prisma.user.create({ data: { name: "P4 Trainer", role: "TRAINER" } })).id;
     cashierId = (await prisma.user.create({ data: { name: "P4 Kassenwart", role: "CASHIER" } })).id;
     playerId = (await prisma.user.create({ data: { name: "P4 Spieler", role: "PLAYER" } })).id;
-    await prisma.penaltyRule.upsert({
-      where: { position: 8 },
-      create: {
-        position: 8,
-        title: "Unentschuldigtes Fehlen beim Training",
-        amountCents: 2000,
-        trigger: "UNEXCUSED_ABSENCE",
-      },
-      update: {},
-    });
     sessionId = (
       await prisma.trainingSession.create({
         data: {

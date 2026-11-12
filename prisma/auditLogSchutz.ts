@@ -6,6 +6,13 @@
  *
  * `prisma db push` kennt keine Trigger, deshalb wird dieser Schutz nach jedem `db push` mit
  * `npm run db:audit-schutz` eingespielt (in `npm run db:reset` schon enthalten). Die Anweisungen sind idempotent.
+ *
+ * Defekt D-01 (behoben 12.11.2026, docs/testing/akzeptanzkriterien.md): Früher lief jede Anweisung einzeln.
+ * Zwischen `DROP TRIGGER` und `CREATE TRIGGER` war das Audit-Log kurz ungeschützt, und zwei gleichzeitige
+ * Aufrufe stießen bei `CREATE OR REPLACE FUNCTION` zusammen („tuple concurrently updated“).
+ * Deshalb laufen jetzt alle Anweisungen in EINER Transaktion: Andere Verbindungen sehen entweder den alten
+ * oder den neuen Schutz, nie einen Zustand ohne Trigger. Eine Sperre (Advisory Lock) sorgt dafür, dass
+ * gleichzeitige Aufrufe nacheinander drankommen.
  */
 import type { PrismaClient } from "@prisma/client";
 
@@ -24,6 +31,13 @@ $$ LANGUAGE plpgsql`,
   `ALTER TABLE "AuditLog" ADD CONSTRAINT audit_log_genau_ein_bezug CHECK (num_nonnulls("entryId", "attendanceId") = 1)`,
 ];
 
+/** Feste Nummer der Sperre, nur für das Einspielen des Audit-Log-Schutzes (frei gewählt). */
+export const AUDIT_LOG_SCHUTZ_LOCK = 4_711_001;
+
 export async function applyAuditLogSchutz(prisma: PrismaClient) {
-  for (const sql of AUDIT_LOG_SCHUTZ_SQL) await prisma.$executeRawUnsafe(sql);
+  await prisma.$transaction([
+    // wartet, bis ein gleichzeitiger Aufruf fertig ist; wird am Ende der Transaktion automatisch freigegeben
+    prisma.$queryRawUnsafe(`SELECT pg_advisory_xact_lock(${AUDIT_LOG_SCHUTZ_LOCK})::text`),
+    ...AUDIT_LOG_SCHUTZ_SQL.map((sql) => prisma.$executeRawUnsafe(sql)),
+  ]);
 }

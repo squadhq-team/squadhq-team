@@ -7,7 +7,6 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db";
 import { setByTrainer } from "@/services/attendanceService";
 import { approvePenalty } from "@/services/penaltyEngine";
-import { applyAuditLogSchutz } from "../prisma/auditLogSchutz";
 
 const run = process.env.RUN_DB_TESTS === "1";
 
@@ -17,19 +16,9 @@ describe.skipIf(!run)("Ablauf Strafvorschlag (REQ-PEN-02)", () => {
   let sessionId: string;
 
   beforeAll(async () => {
-    await applyAuditLogSchutz(prisma);
+    // Audit-Log-Schutz und Katalogregel Pos. 8 legt tests/setup/dbGlobalSetup.ts einmal vorab an (D-01)
     const trainer = await prisma.user.create({ data: { name: "Test Trainer", role: "TRAINER" } });
     const player = await prisma.user.create({ data: { name: "Test Spieler", role: "PLAYER" } });
-    await prisma.penaltyRule.upsert({
-      where: { position: 8 },
-      create: {
-        position: 8,
-        title: "Unentschuldigtes Fehlen beim Training",
-        amountCents: 2000,
-        trigger: "UNEXCUSED_ABSENCE",
-      },
-      update: {},
-    });
     const session = await prisma.trainingSession.create({
       data: {
         title: "Testtraining",
