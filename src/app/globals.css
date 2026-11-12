@@ -1,6 +1,55 @@
 @import "tailwindcss";
 
+/*
+ * Design SquadHQ (#45): modern und vereinsneutral (die App soll für jedes Team passen).
+ * Weiße Flächen, schwarze Aktions-Buttons, sattes Grün als Markenfarbe, Limette als Akzent,
+ * fette schmale Überschriften in Großbuchstaben, große Tippflächen fürs Handy.
+ * Farben nur über diese Tokens verwenden (bg-brand-700 usw.), damit sich das Design an einer Stelle ändern lässt.
+ */
+@theme {
+  --color-brand-50: #ecfdf3;
+  --color-brand-100: #d3f8e2;
+  --color-brand-200: #a9efc8;
+  --color-brand-300: #6fdfa5;
+  --color-brand-500: #16a35f;
+  --color-brand-600: #0d8a4d;
+  --color-brand-700: #0a6e3e;
+  --color-brand-800: #0a5733;
+  --color-brand-900: #08402a;
+  --color-accent: #b6f24a;
+  --color-ink: #0c0f0d;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: var(--font-barlow), "Arial Narrow", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
 body {
-  background: #f4f6f5;
-  color: #14201a;
+  background: #f4f5f3;
+  color: #14171a;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Platz unter dem Inhalt für die Navigation unten am Handy (inkl. Home-Leiste beim iPhone) */
+.pb-safe {
+  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+}
+@media (min-width: 768px) {
+  .pb-safe {
+    padding-bottom: 2rem;
+  }
+}
+.bottom-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Überschriften im Stil einer Sport-App: schmal, fett, Großbuchstaben */
+.display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 1.05;
 }

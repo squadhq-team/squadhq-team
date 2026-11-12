@@ -1,18 +1,27 @@
 /**
  * Registrierung: neues Konto bei Supabase Auth anlegen und mit einem SquadHQ-Nutzer (Tabelle User) verknüpfen.
  * Das Passwort verwaltet ausschließlich Supabase; in unserer Datenbank stehen nur Name, E-Mail, Rolle und authId.
- * Neue Konten bekommen die Rolle Spieler; Trainer und Kassenwart werden nicht über die Registrierung vergeben (REQ-SEC-01).
+ * Neue Konten haben noch kein Team. Danach gründen sie ein Team (werden Trainer) oder treten mit dem Team-Code bei
+ * (werden Spieler); weitere Rollen vergibt der Trainer (REQ-SEC-01, src/services/teamService.ts).
  */
 import type { User } from "@prisma/client";
 import { prisma } from "./db";
 import { createSupabaseServerClient } from "./supabase";
+import { joinTeam } from "@/services/teamService";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Mindestlänge für Passwörter (muss mindestens der Einstellung in Supabase entsprechen, Standard dort: 6). */
 export const MIN_PASSWORD_LENGTH = 8;
 
-export type RegistrationInput = { name: string; email: string; password: string; passwordRepeat: string };
+export type RegistrationInput = {
+  name: string;
+  email: string;
+  password: string;
+  passwordRepeat: string;
+  /** optional: Team-Code aus der Einladung; nach dem ersten Anmelden tritt das Konto automatisch bei */
+  joinCode?: string;
+};
 
 /** Prüft die Eingaben; liefert eine verständliche Fehlermeldung oder null. */
 export function validateRegistration(input: RegistrationInput): string | null {
@@ -35,21 +44,36 @@ export function validateNewPassword(password: string, repeat: string): string | 
  * Legt den SquadHQ-Nutzer zu einem Supabase-Konto an oder liefert den vorhandenen.
  * Wird bei der Registrierung und bei jeder Anmeldung aufgerufen, damit Konto und Nutzer immer zusammenpassen.
  */
-export async function ensureAppUser(auth: { id: string; email?: string | null; name?: string | null }): Promise<User> {
+export async function ensureAppUser(auth: {
+  id: string;
+  email?: string | null;
+  name?: string | null;
+  joinCode?: string | null;
+}): Promise<User> {
   const existing = await prisma.user.findUnique({ where: { authId: auth.id } });
   if (existing) return existing;
   const email = auth.email?.trim().toLowerCase() || null;
   // Gleiche E-Mail, aber neues Supabase-Konto (z. B. Konto in Supabase gelöscht und neu registriert): neu verknüpfen
   const sameEmail = email ? await prisma.user.findUnique({ where: { email } }) : null;
   if (sameEmail) return prisma.user.update({ where: { id: sameEmail.id }, data: { authId: auth.id } });
-  return prisma.user.create({
+  const user = await prisma.user.create({
     data: {
       authId: auth.id,
       email,
       name: auth.name?.trim() || email?.split("@")[0] || "Neues Mitglied",
       role: "PLAYER",
+      teamId: null,
     },
   });
+  if (auth.joinCode) {
+    try {
+      await joinTeam(user.id, auth.joinCode);
+      return prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+    } catch {
+      // Code ungültig: dann wählt die Person auf /willkommen selbst
+    }
+  }
+  return user;
 }
 
 /**
@@ -71,13 +95,16 @@ export async function registerUser(
   const { data, error: authError } = await supabase.auth.signUp({
     email,
     password: input.password,
-    options: { data: { name: input.name.trim() }, emailRedirectTo: confirmRedirectTo },
+    options: {
+      data: { name: input.name.trim(), joinCode: input.joinCode?.trim() || null },
+      emailRedirectTo: confirmRedirectTo,
+    },
   });
   if (authError) throw new Error(translateAuthError(authError.message));
   // Supabase meldet eine schon registrierte E-Mail nicht als Fehler, sondern liefert ein Konto ohne Identitäten
   if (!data.user || data.user.identities?.length === 0) throw new Error("Mit dieser E-Mail gibt es schon ein Konto.");
 
-  const user = await ensureAppUser({ id: data.user.id, email, name: input.name });
+  const user = await ensureAppUser({ id: data.user.id, email, name: input.name, joinCode: input.joinCode });
   return { user, needsConfirmation: !data.session };
 }
 

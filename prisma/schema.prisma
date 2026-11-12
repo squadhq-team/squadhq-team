@@ -1,5 +1,6 @@
-// Datenmodell SquadHQ (Stand P4)
+// Datenmodell SquadHQ (Stand Sprint Features & Design, 12.11.2026)
 // Quelle der Status-Werte: Feedback-Matrix (docs/interviews/feedback-matrix.md)
+// Jedes Team ist von anderen Teams getrennt: alle Fachdaten hängen über teamId an genau einem Team.
 
 generator client {
   provider = "prisma-client-js"
@@ -11,23 +12,41 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-/// REQ-SEC-01: drei Rollen mit unterschiedlichen Rechten
+/// REQ-SEC-01: Rollen mit unterschiedlichen Rechten (Rechte-Tabelle: src/domain/permissions.ts)
 enum Role {
   TRAINER
+  ASSISTANT
   CASHIER
   PLAYER
+  GUARDIAN
 }
 
-/// REQ-ATT-01: 1-Klick-Rückmeldung; UNEXCUSED setzt nur der Trainer
+/// REQ-ATT-01: 1-Klick-Rückmeldung; UNEXCUSED setzt nur der Trainer, INJURED zählt nicht in die Beteiligungsquote
 enum AttendanceStatus {
   ATTENDING
   EXCUSED
   UNSURE
+  INJURED
   UNEXCUSED
 }
 
-/// REQ-PEN-02/03: Lebenszyklus einer Strafe
-/// PENDING_APPROVAL = Vorschlag der PenaltyEngine, wartet auf Trainer-Freigabe
+/// Art eines Termins (#47)
+enum EventType {
+  TRAINING
+  GAME
+  TOURNAMENT
+  PARTY
+  OTHER
+}
+
+/// Aufstellung bei Spielen (#29)
+enum LineupSlot {
+  STARTER
+  BENCH
+}
+
+/// REQ-PEN-02/03: Lebenszyklus einer Forderung (Strafe, Mahngebühr, Beitrag)
+/// PENDING_APPROVAL = Vorschlag, wartet auf Freigabe durch den Trainer
 enum PenaltyStatus {
   PENDING_APPROVAL
   OPEN
@@ -42,54 +61,132 @@ enum PaymentMethod {
   PAYPAL
 }
 
+/// Wann eine Katalogregel greift
 enum PenaltyTrigger {
   UNEXCUSED_ABSENCE
+  UNEXCUSED_GAME
   LATE
+  LATE_FEE
   MANUAL
 }
 
-model User {
-  id           String   @id @default(cuid())
-  name         String
-  role         Role
-  phone        String?
-  /// Anmeldung über Supabase Auth: ID des Kontos in auth.users (UUID). Demo-Personen haben keins.
-  authId       String?  @unique
-  email        String?  @unique
-  /// Veraltet seit dem Umstieg auf Supabase Auth (10.11.2026), wird nicht mehr gelesen oder geschrieben.
-  /// Bleibt bis nach P4 stehen, damit ein Zurückrollen auf die vorige App-Version ohne Datenbank-Reset möglich ist.
-  passwordHash String?
-  createdAt    DateTime @default(now())
-
-  attendances      Attendance[]
-  penalties        PenaltyEntry[] @relation("PenaltyPlayer")
-  createdPenalties PenaltyEntry[] @relation("PenaltyCreator")
-  auditEntries     AuditLog[]
-  createdSessions  TrainingSession[]
+/// Art einer Forderung im Kassenkonto
+enum EntryKind {
+  PENALTY
+  LATE_FEE
+  FEE
 }
 
+/// Kassenbuch: sonstige Einnahmen und Ausgaben der Mannschaft (#53)
+enum CashDirection {
+  INCOME
+  EXPENSE
+}
+
+/// Eine Mannschaft. Neue Mitglieder treten mit dem Team-Code bei.
+model Team {
+  id        String   @id @default(cuid())
+  name      String
+  /// Team-Code zum Beitreten (6 Zeichen, ohne verwechselbare Zeichen wie 0/O, 1/I)
+  joinCode  String   @unique
+  /// PayPal.me-Name des Kassenwarts (#54), nur in der Datenbank, nie im Repository
+  paypalMe  String?
+  /// Demo-Team für Präsentationen: nur hier gibt es die Demo-Anmeldung per Klick
+  isDemo    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  members       User[]
+  sessions      TrainingSession[]
+  rules         PenaltyRule[]
+  entries       PenaltyEntry[]
+  transactions  CashTransaction[]
+  announcements Announcement[]
+  polls         Poll[]
+  messages      ChatMessage[]
+  auditLog      AuditLog[]
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  role         Role
+  /// null = noch in keinem Team (direkt nach der Registrierung) oder ausgetreten
+  teamId       String?
+  phone        String?
+  /// Spielposition, z. B. Torwart, Abwehr (#51)
+  position     String?
+  shirtNumber  Int?
+  /// Anmeldung über Supabase Auth: ID des Kontos in auth.users (UUID). Demo-Personen und Mitglieder ohne Konto haben keins.
+  authId       String?   @unique
+  email        String?   @unique
+  /// Stellvertreter bzw. Elternteil, das für dieses Mitglied zu- und absagen darf
+  managedById  String?
+  /// Gesetzt, wenn das Konto gelöscht wurde: Name und Kontaktdaten sind dann entfernt, Protokoll bleibt vollständig
+  deletedAt    DateTime?
+  /// Veraltet seit dem Umstieg auf Supabase Auth (10.11.2026), wird nicht mehr gelesen oder geschrieben.
+  passwordHash String?
+  createdAt    DateTime  @default(now())
+
+  team             Team?              @relation(fields: [teamId], references: [id])
+  managedBy        User?              @relation("Stellvertretung", fields: [managedById], references: [id], onDelete: SetNull)
+  managed          User[]             @relation("Stellvertretung")
+  attendances      Attendance[]
+  penalties        PenaltyEntry[]     @relation("PenaltyPlayer")
+  createdPenalties PenaltyEntry[]     @relation("PenaltyCreator")
+  auditEntries     AuditLog[]         @relation("AuditActor")
+  auditSubject     AuditLog[]         @relation("AuditSubject")
+  createdSessions  TrainingSession[]
+  transactions     CashTransaction[]
+  announcements    Announcement[]
+  polls            Poll[]
+  votes            PollVote[]
+  messages         ChatMessage[]
+  pushSubs         PushSubscription[]
+}
+
+/// Termin (Training, Spiel, Turnier, Feier, Sonstiges). Name aus P3 beibehalten, damit Diagramme und Code gleich heißen.
 model TrainingSession {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
+  teamId           String
+  type             EventType @default(TRAINING)
   title            String
   startsAt         DateTime
   responseDeadline DateTime
   location         String?
+  /// Zusatzinfos (#48)
+  meetingPoint     String?
+  meetingAt        DateTime?
+  tasks            String?
+  notes            String?
+  opponent         String?
+  /// Abgesagte Termine bleiben sichtbar (durchgestrichen), damit niemand umsonst kommt
+  cancelledAt      DateTime?
+  /// UID aus importierter Kalenderdatei (Spielplan-Import), verhindert doppelte Termine
+  importUid        String?
   createdById      String
-  createdAt        DateTime @default(now())
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
+  team        Team           @relation(fields: [teamId], references: [id])
   createdBy   User           @relation(fields: [createdById], references: [id])
   attendances Attendance[]
   penalties   PenaltyEntry[]
+
+  @@unique([teamId, importUid])
+  @@index([teamId, startsAt])
 }
 
 model Attendance {
-  id        String           @id @default(cuid())
-  sessionId String
-  userId    String
-  status    AttendanceStatus
+  id             String           @id @default(cuid())
+  sessionId      String
+  userId         String
+  status         AttendanceStatus
   /// optionaler Grund, ohne Rechtfertigungsdruck (Feedback Spieler)
-  note      String?
-  updatedAt DateTime         @updatedAt
+  note           String?
+  /// Aufstellung bei Spielen (#29)
+  lineup         LineupSlot?
+  lineupPosition String?
+  updatedAt      DateTime         @updatedAt
 
   session  TrainingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   user     User            @relation(fields: [userId], references: [id])
@@ -98,49 +195,92 @@ model Attendance {
   @@unique([sessionId, userId])
 }
 
-/// REQ-PEN-01: Position aus dem TSVK-Strafenkatalog 2026/27
+/// REQ-PEN-01: Position im Strafenkatalog des Teams (neue Teams starten mit dem TSVK-Katalog 2026/27 als Vorlage)
 model PenaltyRule {
-  id          String          @id @default(cuid())
+  id          String         @id @default(cuid())
+  teamId      String
   /// Positionsnummer im Katalog; null bei Unterpositionen (z. B. 13A, steht im Titel) und Zusatzregeln wie dem Zahlungsverzug
-  position    Int?            @unique
+  position    Int?
   title       String
   amountCents Int
   trigger     PenaltyTrigger
-  active      Boolean         @default(true)
+  active      Boolean        @default(true)
 
+  team    Team           @relation(fields: [teamId], references: [id])
   entries PenaltyEntry[]
+
+  @@unique([teamId, position])
 }
 
+/// Forderung an ein Mitglied: Strafe, automatische Mahngebühr oder Beitrag
 model PenaltyEntry {
-  id          String        @id @default(cuid())
+  id          String         @id @default(cuid())
+  teamId      String
+  kind        EntryKind      @default(PENALTY)
   playerId    String
-  ruleId      String
+  /// Katalogregel; bei Beiträgen leer
+  ruleId      String?
   sessionId   String?
+  /// eigener Titel (Beiträge) bzw. Zusatz zur Regel
+  title       String?
+  quantity    Int            @default(1)
+  note        String?
   amountCents Int
-  paidCents   Int           @default(0)
+  paidCents   Int            @default(0)
   status      PenaltyStatus
   method      PaymentMethod?
   dueDate     DateTime?
-  createdById String
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  /// Mahngebühr: zu welcher Strafe und für die wievielte Woche Verzug
+  parentId    String?
+  lateFeeWeek Int?
+  createdById String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 
+  team      Team             @relation(fields: [teamId], references: [id])
   player    User             @relation("PenaltyPlayer", fields: [playerId], references: [id])
-  rule      PenaltyRule      @relation(fields: [ruleId], references: [id])
+  rule      PenaltyRule?     @relation(fields: [ruleId], references: [id])
   session   TrainingSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
-  createdBy User             @relation("PenaltyCreator", fields: [createdById], references: [id])
+  createdBy User?            @relation("PenaltyCreator", fields: [createdById], references: [id])
+  parent    PenaltyEntry?    @relation("Mahngebuehr", fields: [parentId], references: [id], onDelete: Restrict)
+  lateFees  PenaltyEntry[]   @relation("Mahngebuehr")
+  auditLog  AuditLog[]
+
+  @@unique([parentId, lateFeeWeek])
+  @@index([teamId, status])
+}
+
+/// Kassenbuch (#53): Einnahmen und Ausgaben außerhalb der Strafen, z. B. Getränke, Mannschaftsfeier, Sponsor
+model CashTransaction {
+  id          String        @id @default(cuid())
+  teamId      String
+  direction   CashDirection
+  amountCents Int
+  description String
+  bookedAt    DateTime      @default(now())
+  createdById String
+  /// Storniert statt gelöscht, damit das Protokoll vollständig bleibt
+  cancelledAt DateTime?
+  createdAt   DateTime      @default(now())
+
+  team      Team       @relation(fields: [teamId], references: [id])
+  createdBy User       @relation(fields: [createdById], references: [id])
   auditLog  AuditLog[]
 }
 
-/// REQ-AUD-01 (MVP-6) / Feedback Kassenwart: wer hat wann was eingetragen, geändert, storniert oder bezahlt
-/// Ein Eintrag betrifft entweder eine Strafe (entryId, oldStatus/newStatus)
-/// oder eine vom Trainer gesetzte Anwesenheit (attendanceId, oldAttendance/newAttendance).
+/// REQ-AUD-01 (MVP-6): wer hat wann was eingetragen, geändert, storniert oder bezahlt.
+/// Ein Eintrag betrifft genau eine Sache: eine Forderung (entryId), eine vom Trainer gesetzte Anwesenheit (attendanceId),
+/// eine Kassenbuchung (transactionId) oder ein Mitglied (subjectId, z. B. Rollenwechsel).
 /// Einträge werden nur angelegt, nie geändert oder gelöscht (Datenbank-Trigger, siehe prisma/auditLogSchutz.ts)
 model AuditLog {
   id            String            @id @default(cuid())
+  teamId        String
   entryId       String?
   attendanceId  String?
-  actorId       String
+  transactionId String?
+  subjectId     String?
+  /// null = automatisch durch das System (z. B. Mahngebühr)
+  actorId       String?
   action        String
   oldStatus     PenaltyStatus?
   newStatus     PenaltyStatus?
@@ -149,9 +289,93 @@ model AuditLog {
   note          String?
   createdAt     DateTime          @default(now())
 
-  /// Restrict: eine Strafe mit Protokoll lässt sich nicht löschen, nur stornieren (CANCELLED)
-  entry      PenaltyEntry? @relation(fields: [entryId], references: [id], onDelete: Restrict)
+  team        Team             @relation(fields: [teamId], references: [id])
+  /// Restrict: eine Forderung mit Protokoll lässt sich nicht löschen, nur stornieren (CANCELLED)
+  entry       PenaltyEntry?    @relation(fields: [entryId], references: [id], onDelete: Restrict)
   /// Restrict: eine protokollierte Anwesenheit lässt sich nicht löschen
-  attendance Attendance?   @relation(fields: [attendanceId], references: [id], onDelete: Restrict)
-  actor      User          @relation(fields: [actorId], references: [id])
+  attendance  Attendance?      @relation(fields: [attendanceId], references: [id], onDelete: Restrict)
+  transaction CashTransaction? @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+  subject     User?            @relation("AuditSubject", fields: [subjectId], references: [id], onDelete: Restrict)
+  actor       User?            @relation("AuditActor", fields: [actorId], references: [id])
+
+  @@index([teamId, createdAt])
+}
+
+/// Neuigkeiten und Ankündigungen an das ganze Team (#49)
+model Announcement {
+  id        String   @id @default(cuid())
+  teamId    String
+  authorId  String
+  title     String
+  body      String
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  team   Team @relation(fields: [teamId], references: [id])
+  author User @relation(fields: [authorId], references: [id])
+}
+
+/// Umfragen im Team (#50)
+model Poll {
+  id          String    @id @default(cuid())
+  teamId      String
+  createdById String
+  question    String
+  /// mehrere Antworten erlaubt
+  multiple    Boolean   @default(false)
+  closesAt    DateTime?
+  closedAt    DateTime?
+  createdAt   DateTime  @default(now())
+
+  team      Team         @relation(fields: [teamId], references: [id])
+  createdBy User         @relation(fields: [createdById], references: [id])
+  options   PollOption[]
+}
+
+model PollOption {
+  id     String @id @default(cuid())
+  pollId String
+  text   String
+  order  Int
+
+  poll  Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes PollVote[]
+}
+
+model PollVote {
+  id        String   @id @default(cuid())
+  optionId  String
+  userId    String
+  createdAt DateTime @default(now())
+
+  option PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  user   User       @relation(fields: [userId], references: [id])
+
+  @@unique([optionId, userId])
+}
+
+/// Team-Chat
+model ChatMessage {
+  id        String   @id @default(cuid())
+  teamId    String
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  team   Team @relation(fields: [teamId], references: [id])
+  author User @relation(fields: [authorId], references: [id])
+
+  @@index([teamId, createdAt])
+}
+
+/// Push-Benachrichtigungen (#26): ein Eintrag je Gerät/Browser, das Benachrichtigungen erlaubt hat
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

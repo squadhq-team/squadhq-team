@@ -4,8 +4,10 @@
  *
  * - `position` ist im Schema eindeutig. Unterpositionen (5A/5B, 13A–C) haben deshalb `position: null`
  *   und tragen die Unterposition im Titel.
- * - Nur Pos. 8 hat den Trigger UNEXCUSED_ABSENCE: Die PenaltyEngine schlägt bei unentschuldigtem Fehlen
- *   im Training genau diese Regel vor. Pos. 9 (Spiel) ist MANUAL, solange es nur Trainings als Termine gibt.
+ * - Pos. 8 hat den Trigger UNEXCUSED_ABSENCE (Training), Pos. 9 den Trigger UNEXCUSED_GAME (Spiel, Turnier):
+ *   Die PenaltyEngine schlägt bei unentschuldigtem Fehlen je nach Termin-Typ genau diese Regel vor (#47).
+ * - Der Zahlungsverzug hat den Trigger LATE_FEE: Daraus bucht die App die Mahngebühr automatisch (#52).
+ * - Jedes neue Team bekommt diesen Katalog als Vorlage und kann ihn danach selbst pflegen.
  * - Pos. 1 und 2 sind Sachstrafen (1 Kasten) ohne Geldbetrag, daher 0 € und deaktiviert (Phase 2).
  */
 import type { RuleLike } from "../src/domain/penalties";
@@ -54,7 +56,7 @@ export const STRAFENKATALOG: CatalogRule[] = [
   { position: 6, title: "Nicht-Tragen der Trainingsklamotten (je Stück)", amountCents: 200, trigger: "MANUAL" },
   { position: 7, title: "Nicht-Ausführen der Ämter/Aufgaben", amountCents: 500, trigger: "MANUAL" },
   { position: 8, title: "Unentschuldigtes Fehlen beim Training", amountCents: 2000, trigger: "UNEXCUSED_ABSENCE" },
-  { position: 9, title: "Unentschuldigtes Fehlen beim Spiel", amountCents: 4000, trigger: "MANUAL" },
+  { position: 9, title: "Unentschuldigtes Fehlen beim Spiel", amountCents: 4000, trigger: "UNEXCUSED_GAME" },
   { position: 10, title: "Gelbe Karte wegen unsportlichen Verhaltens", amountCents: 700, trigger: "MANUAL" },
   { position: 11, title: "Gelb-Rote Karte wegen unsportlichen Verhaltens", amountCents: 2000, trigger: "MANUAL" },
   { position: 12, title: "Rote Karte wegen unsportlichen Verhaltens", amountCents: 4000, trigger: "MANUAL" },
@@ -76,5 +78,5 @@ export const STRAFENKATALOG: CatalogRule[] = [
     amountCents: 1000,
     trigger: "LATE",
   },
-  { position: null, title: "Zahlungsverzug: Erhöhung je verspätete Woche", amountCents: 500, trigger: "MANUAL" },
+  { position: null, title: "Zahlungsverzug: Erhöhung je verspätete Woche", amountCents: 500, trigger: "LATE_FEE" },
 ];

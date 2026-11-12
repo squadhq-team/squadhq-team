@@ -9,7 +9,22 @@
  */
 import type { PrismaClient } from "@prisma/client";
 
-export const APP_TABLES = ["User", "TrainingSession", "Attendance", "PenaltyRule", "PenaltyEntry", "AuditLog"] as const;
+export const APP_TABLES = [
+  "Team",
+  "User",
+  "TrainingSession",
+  "Attendance",
+  "PenaltyRule",
+  "PenaltyEntry",
+  "CashTransaction",
+  "AuditLog",
+  "Announcement",
+  "Poll",
+  "PollOption",
+  "PollVote",
+  "ChatMessage",
+  "PushSubscription",
+] as const;
 
 export const ZUGRIFFSSCHUTZ_SQL: string[] = APP_TABLES.map((t) => `ALTER TABLE "${t}" ENABLE ROW LEVEL SECURITY`);
 

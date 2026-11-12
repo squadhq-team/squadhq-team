@@ -9,14 +9,38 @@ const dateTime = new Intl.DateTimeFormat("de-DE", {
   timeZone: "Europe/Berlin",
 });
 
+const dateOnly = new Intl.DateTimeFormat("de-DE", {
+  weekday: "long",
+  day: "2-digit",
+  month: "long",
+  timeZone: "Europe/Berlin",
+});
+const timeOnly = new Intl.DateTimeFormat("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" });
+const dayShort = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", timeZone: "Europe/Berlin" });
+
 export const formatEuro = (cents: number) => euro.format(cents / 100);
 export const formatDateTime = (d: Date) => dateTime.format(d);
+/** z. B. „Samstag, 14. November“ */
+export const formatDate = (d: Date) => dateOnly.format(d);
+/** z. B. „19:00“ */
+export const formatTime = (d: Date) => timeOnly.format(d);
+/** z. B. „14.11.“ */
+export const formatDayShort = (d: Date) => dayShort.format(d);
 
 export const ATTENDANCE_LABEL = {
   ATTENDING: "Dabei",
   EXCUSED: "Entschuldigt",
   UNSURE: "Noch unsicher",
+  INJURED: "Verletzt",
   UNEXCUSED: "Unentschuldigt",
+} as const;
+
+export const EVENT_TYPE_LABEL = {
+  TRAINING: "Training",
+  GAME: "Spiel",
+  TOURNAMENT: "Turnier",
+  PARTY: "Mannschaftsfeier",
+  OTHER: "Sonstiges",
 } as const;
 
 export const PENALTY_LABEL = {
@@ -28,7 +52,39 @@ export const PENALTY_LABEL = {
   CANCELLED: "Storniert",
 } as const;
 
-export const ROLE_LABEL = { TRAINER: "Trainer", CASHIER: "Kassenwart", PLAYER: "Spieler" } as const;
+export const ROLE_LABEL = {
+  TRAINER: "Trainer",
+  ASSISTANT: "Betreuer",
+  CASHIER: "Kassenwart",
+  PLAYER: "Spieler",
+  GUARDIAN: "Elternteil/Stellvertreter",
+} as const;
+
+export const ROLE_HINT = {
+  TRAINER: "Termine, Anwesenheit, Strafen freigeben, Mitglieder und Rollen verwalten",
+  ASSISTANT: "Termine und Anwesenheit, Strafen vorschlagen, Neuigkeiten",
+  CASHIER: "Teamkasse, Zahlungen, Beiträge, Kassenbuch; spielt selbst mit",
+  PLAYER: "Zu- und absagen, eigenes Kassenkonto",
+  GUARDIAN: "Sagt für verknüpfte Mitglieder (z. B. Kinder) zu und ab",
+} as const;
+
+/** Anzeigename einer Forderung: eigener Titel (Beitrag, Mahngebühr) oder Katalogregel, ggf. mit Anzahl. */
+export function entryTitle(e: {
+  title: string | null;
+  quantity: number;
+  rule: { title: string; position: number | null } | null;
+}) {
+  const base =
+    e.title ?? (e.rule ? `${e.rule.position ? `Pos. ${e.rule.position}: ` : ""}${e.rule.title}` : "Forderung");
+  return e.quantity > 1 ? `${base} × ${e.quantity}` : base;
+}
+
+/** Datum für <input type="datetime-local"> in deutscher Zeit, z. B. "2026-11-14T15:00" (Gegenstück zu parseBerlinDateTime). */
+export function toBerlinInputValue(d: Date | null | undefined): string {
+  if (!d) return "";
+  const p = Object.fromEntries(berlinParts.formatToParts(d).map((x) => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+}
 
 const berlinParts = new Intl.DateTimeFormat("en-US", {
   timeZone: "Europe/Berlin",

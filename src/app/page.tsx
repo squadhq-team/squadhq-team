@@ -1,22 +1,28 @@
 import Link from "next/link";
-import { isEmailLoginEnabled, listLoginUsers } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { getCurrentUser, homeFor, isEmailLoginEnabled, listLoginUsers } from "@/lib/auth";
 import { ROLE_LABEL } from "@/lib/format";
-import { Card, ErrorNotice, inputClass } from "@/components/ui";
+import { Avatar, Card, btn, inputClass } from "@/components/ui";
+import { Logo } from "@/components/icons";
 import { ActionForm, SubmitButton } from "@/components/SubmitButton";
 import { login, loginWithPassword } from "./actions";
 
-/** Einloggen: mit E-Mail und Passwort (Supabase Auth) oder per Demo-Anmeldung für Präsentationen. */
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ fehler?: string }> }) {
-  const { fehler } = await searchParams;
+/** Einloggen: mit E-Mail und Passwort (Supabase Auth) oder per Demo-Anmeldung (Demo-Team) für Präsentationen. */
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ code?: string }> }) {
+  const user = await getCurrentUser();
+  if (user) redirect(homeFor(user));
+  const { code } = await searchParams;
   const users = await listLoginUsers();
   const emailLogin = isEmailLoginEnabled();
   return (
     <>
-      <div>
-        <h1 className="text-2xl font-bold">Willkommen bei SquadHQ</h1>
-        <p className="text-sm text-gray-600">Trainingszusagen, Strafenkatalog und Teamkasse an einem Ort.</p>
+      <div className="flex flex-col items-center gap-2 pt-2 text-center">
+        <Logo className="h-16 w-16 drop-shadow" />
+        <h1 className="text-2xl font-bold tracking-tight">Willkommen bei SquadHQ</h1>
+        <p className="max-w-sm text-sm text-stone-600">
+          Termine, Zu- und Absagen, Strafenkatalog und Teamkasse deiner Mannschaft an einem Ort.
+        </p>
       </div>
-      <ErrorNotice message={fehler} />
       {!emailLogin && (
         <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200">
           Die Anmeldung mit E-Mail ist auf diesem Server noch nicht eingerichtet (SUPABASE_URL und SUPABASE_ANON_KEY
@@ -25,7 +31,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       )}
       {emailLogin && (
         <Card title="Anmelden">
-          <ActionForm action={loginWithPassword} className="space-y-3 text-sm">
+          <ActionForm action={loginWithPassword} className="space-y-3">
+            {code && <input type="hidden" name="code" value={code} />}
             <input
               name="email"
               type="email"
@@ -42,39 +49,40 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
               required
               className={inputClass}
             />
-            <SubmitButton className="w-full rounded-lg bg-emerald-700 px-3 py-2.5 font-medium text-white hover:bg-emerald-800">
-              Anmelden
-            </SubmitButton>
+            <SubmitButton className={`w-full ${btn.primary}`}>Anmelden</SubmitButton>
           </ActionForm>
-          <p className="mt-3 flex flex-wrap justify-between gap-2 text-sm">
-            <Link href="/passwort-vergessen" className="text-emerald-800 hover:underline">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm">
+            <Link href="/passwort-vergessen" className="font-medium text-brand-700 hover:underline">
               Passwort vergessen?
             </Link>
-            <span>
-              Noch kein Konto?{" "}
-              <Link href="/registrieren" className="text-emerald-800 hover:underline">
-                Registrieren
-              </Link>
-            </span>
-          </p>
+            <Link
+              href={code ? `/registrieren?code=${encodeURIComponent(code)}` : "/registrieren"}
+              className={btn.secondary}
+            >
+              Neues Konto erstellen
+            </Link>
+          </div>
         </Card>
       )}
       {users.length > 0 && (
-        <Card title="Demo-Anmeldung">
-          <p className="mb-2 text-xs text-gray-500">
-            Für die Präsentation: eine Person wählen, um die App aus ihrer Rolle zu sehen.
+        <Card title="Demo ansehen">
+          <p className="mb-2 text-xs text-stone-500">
+            Ohne Konto ausprobieren: eine Person aus dem Demo-Team wählen und die App aus ihrer Rolle sehen.
           </p>
-          <ul className="divide-y">
+          <ul className="divide-y divide-stone-100">
             {users.map((u) => (
               <li key={u.id}>
-                <ActionForm action={login} className="flex items-center justify-between py-2">
+                <ActionForm action={login} className="flex items-center justify-between gap-2 py-2">
                   <input type="hidden" name="userId" value={u.id} />
-                  <span>
-                    <span className="font-medium">{u.name}</span>
-                    <span className="ml-2 text-xs text-gray-500">{ROLE_LABEL[u.role]}</span>
+                  <span className="flex items-center gap-2">
+                    <Avatar name={u.name} size="sm" />
+                    <span>
+                      <span className="block text-sm font-medium">{u.name}</span>
+                      <span className="block text-xs text-stone-500">{ROLE_LABEL[u.role]}</span>
+                    </span>
                   </span>
-                  <SubmitButton className="rounded-lg bg-emerald-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-800">
-                    Anmelden
+                  <SubmitButton className={`${btn.small} bg-stone-100 text-stone-800 hover:bg-stone-200`}>
+                    Ansehen
                   </SubmitButton>
                 </ActionForm>
               </li>
@@ -82,6 +90,11 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           </ul>
         </Card>
       )}
+      <p className="text-center text-xs text-stone-500">
+        <Link href="/datenschutz" className="hover:underline">
+          Datenschutz
+        </Link>
+      </p>
     </>
   );
 }

@@ -56,4 +56,14 @@ describe("Strafenkatalog TSVK 2026/27 (REQ-PEN-01)", () => {
     expect(rules.filter((r) => r.trigger === "UNEXCUSED_ABSENCE")).toHaveLength(1);
     expect(suggestRuleForAttendance("UNEXCUSED", rules)).toMatchObject({ position: 8, amountCents: 2000 });
   });
+
+  it("#47: schlägt beim Spiel und Turnier Pos. 9 (40 €) vor, bei Feier keine Strafe", () => {
+    expect(suggestRuleForAttendance("UNEXCUSED", rules, "GAME")).toMatchObject({ position: 9, amountCents: 4000 });
+    expect(suggestRuleForAttendance("UNEXCUSED", rules, "TOURNAMENT")).toMatchObject({ position: 9 });
+    expect(suggestRuleForAttendance("UNEXCUSED", rules, "PARTY")).toBeNull();
+  });
+
+  it("#52: genau eine Regel für die automatische Mahngebühr", () => {
+    expect(rules.filter((r) => r.trigger === "LATE_FEE")).toHaveLength(1);
+  });
 });

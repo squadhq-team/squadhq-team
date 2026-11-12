@@ -1,7 +1,7 @@
 /**
- * Gleicht die Tabelle PenaltyRule mit dem aktuellen Strafenkatalog (prisma/strafenkatalog.ts) ab,
- * ohne Spieler, Trainings, Strafen oder das Audit-Log anzufassen. Gedacht für die Live-Datenbank
- * und für jeden neuen Saisonkatalog.
+ * Gleicht den Strafenkatalog des Demo-Teams mit der Vorlage (prisma/strafenkatalog.ts) ab,
+ * ohne Spieler, Termine, Strafen oder das Audit-Log anzufassen. Echte Teams pflegen ihren Katalog
+ * selbst in der App (Kasse → Strafenkatalog) und werden hier nicht verändert.
  *
  * Aufruf: npm run db:sync-katalog
  *
@@ -16,8 +16,14 @@ import { STRAFENKATALOG } from "./strafenkatalog";
 const prisma = new PrismaClient();
 
 async function main() {
+  const demo = await prisma.team.findFirst({ where: { isDemo: true } });
+  if (!demo) throw new Error("Kein Demo-Team gefunden. Erst `npm run db:reset` ausführen.");
+  const teamId = demo.id;
   const summary = await prisma.$transaction(async (tx) => {
-    const existing = await tx.penaltyRule.findMany({ include: { _count: { select: { entries: true } } } });
+    const existing = await tx.penaltyRule.findMany({
+      where: { teamId },
+      include: { _count: { select: { entries: true } } },
+    });
     const kept = new Set<string>();
     let created = 0;
     let updated = 0;
@@ -27,6 +33,7 @@ async function main() {
         rule.position !== null ? r.position === rule.position : r.position === null && r.title === rule.title,
       );
       const data = {
+        teamId,
         position: rule.position,
         title: rule.title,
         amountCents: rule.amountCents,
