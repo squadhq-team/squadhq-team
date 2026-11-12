@@ -1,19 +1,19 @@
 # Verhalten: Sequenzdiagramm REQ-PEN-02
 
-> Zeigt den Kernablauf: unentschuldigtes Fehlen → Strafvorschlag → Freigabe → Saldo, dazu seit P4 die Zahlung beim Kassenwart (eigener Abschnitt unten). Seit dem P3-Feedback (09.11.2026) heißen die Teilnehmer genauso wie die Komponenten im [Komponentendiagramm](komponenten.md) (siehe [Namensliste](namensliste.md)); die Übersicht zeigt dieselben Komponenten wie die Detailansicht, nur ohne Funktionsnamen.
+> Stand Sprint „Features & Design“, 12.11.2026. Zeigt den Kernablauf: unentschuldigtes Fehlen beim Training → Strafvorschlag → Freigabe → Saldo, dazu die Zahlung beim Kassenwart (eigener Abschnitt unten). Die Teilnehmer heißen genauso wie die Komponenten im [Komponentendiagramm](komponenten.md) (siehe [Namensliste](namensliste.md)); die Übersicht zeigt dieselben Komponenten wie die Detailansicht, nur ohne Funktionsnamen. Bei einem Spiel läuft es genauso, nur mit Pos. 9 (40 €).
 
 ## Übersicht
 
 ```mermaid
 sequenceDiagram
   actor T as Trainer
-  participant TD as Trainer-Dashboard
+  participant TD as Termine
   participant ACT as Eingaben verarbeiten
   participant ATT as Zu-/Absagen & Anwesenheit
   participant PEN as Strafen vorschlagen & freigeben
   participant AUD as Protokollierung
   participant DB as Datenbank
-  participant SP as Spieler-Ansicht
+  participant SP as Kasse
   actor S as Spieler
 
   T->>TD: markiert Spieler als „Unentschuldigt“
@@ -44,29 +44,31 @@ Derselbe Ablauf mit allen Komponenten und Funktionsaufrufen, inklusive „Verwer
 sequenceDiagram
   autonumber
   actor T as Trainer
-  participant TD as Trainer-Dashboard
+  participant TD as Termine<br/>(/termine/[id])
   participant ACT as Eingaben verarbeiten<br/>(Server Actions)
-  participant AUTH as Einloggen & Rollenprüfung<br/>(Auth)
+  participant AUTH as Einloggen & Rechteprüfung<br/>(Auth)
   participant ATT as Zu-/Absagen & Anwesenheit<br/>(AttendanceService)
   participant PEN as Strafen vorschlagen & freigeben<br/>(PenaltyEngine)
   participant RULES as Regelverwaltung<br/>(Penalties)
+  participant PAY as Teamkasse & Zahlungen<br/>(PaymentService)
   participant AUD as Protokollierung<br/>(AuditService)
   participant DB as Datenbank<br/>(PostgreSQL)
-  participant SP as Spieler-Ansicht
+  participant SP as Kasse<br/>(/kasse, Mein Konto)
   actor S as Spieler
 
   T->>TD: Klick „Unentschuldigt“ bei Spieler X
   TD->>ACT: setAttendanceAction(sessionId, playerId, UNEXCUSED)
-  ACT->>AUTH: assertRole(TRAINER)
-  ACT->>ATT: setByTrainer(...)
+  ACT->>AUTH: assertMember("anwesenheit.bestaetigen")
+  ACT->>ATT: setByTrainer({teamId, trainerId, sessionId, playerId, status})
   activate ATT
   ATT->>DB: BEGIN, alten Status lesen, upsert Attendance(status=UNEXCUSED)
   opt Status hat sich geändert
     ATT->>AUD: logAttendanceChange(alt → UNEXCUSED)
     AUD->>DB: insert AuditLog (attendanceId)
   end
-  ATT->>PEN: syncPenaltyForAttendance(tx, ...)
-  PEN->>DB: Regeln mit trigger=UNEXCUSED_ABSENCE lesen
+  ATT->>PEN: syncPenaltyForAttendance(tx, {teamId, sessionId, eventType, playerId, status, actorId})
+  PEN->>RULES: absenceTriggerFor(TRAINING) → UNEXCUSED_ABSENCE
+  PEN->>DB: Regeln des Teams mit diesem Auslöser lesen
   PEN->>RULES: suggestRuleForAttendance() → TSVK Pos. 8, 20 €
   PEN->>DB: gibt es schon einen offenen Eintrag?
   alt noch keiner vorhanden
@@ -81,8 +83,8 @@ sequenceDiagram
   alt Trainer gibt frei
     T->>TD: Klick „Freigeben“
     TD->>ACT: approveAction(entryId)
-    ACT->>AUTH: assertRole(TRAINER)
-    ACT->>PEN: approvePenalty(entryId, trainerId)
+    ACT->>AUTH: assertMember("strafen.freigeben")
+    ACT->>PEN: approvePenalty(teamId, entryId, trainerId)
     PEN->>RULES: dueDateFrom(heute) → +7 Tage
     PEN->>DB: update status=OPEN, dueDate
     PEN->>AUD: logPenaltyChange(FREIGEGEBEN)
@@ -91,17 +93,18 @@ sequenceDiagram
   else Trainer verwirft
     T->>TD: Klick „Verwerfen“
     TD->>ACT: discardAction(entryId)
-    ACT->>AUTH: assertRole(TRAINER)
-    ACT->>PEN: discardPenalty(entryId, trainerId)
+    ACT->>AUTH: assertMember("strafen.freigeben")
+    ACT->>PEN: discardPenalty(teamId, entryId, trainerId)
     PEN->>DB: update status=CANCELLED
     PEN->>AUD: logPenaltyChange(VERWORFEN)
     AUD->>DB: insert AuditLog
     ACT-->>TD: Vorschlag verschwindet
   end
 
-  S->>SP: öffnet /spieler (Kassenkonto)
-  SP->>AUTH: requireRole(PLAYER)
-  SP->>PEN: getPlayerAccount(playerId)
+  S->>SP: öffnet /kasse (Mein Konto)
+  SP->>AUTH: requireMember()
+  SP->>PEN: getPlayerAccount(teamId, playerId)
+  PEN->>PAY: applyLateFees(teamId) (fällige Mahngebühren buchen)
   PEN->>DB: select PenaltyEntry des Spielers
   DB-->>PEN: Einträge
   PEN->>RULES: balance(entries) zählt nur OPEN und PARTIAL
@@ -111,12 +114,14 @@ sequenceDiagram
   opt später: Trainer setzt „Entschuldigt“ (Strafe bereits freigegeben)
     T->>TD: Klick „Entschuldigt“
     TD->>ACT: setAttendanceAction(EXCUSED)
-    ACT->>AUTH: assertRole(TRAINER)
-    ACT->>ATT: setByTrainer(...)
-    ATT->>PEN: syncPenaltyForAttendance(tx, ...)
-    PEN->>DB: update status=CANCELLED
+    ACT->>AUTH: assertMember("anwesenheit.bestaetigen")
+    ACT->>ATT: setByTrainer({…, status: EXCUSED})
+    ATT->>PEN: syncPenaltyForAttendance(tx, {…, status: EXCUSED})
+    PEN->>DB: update status=CANCELLED (nur OPEN, PARTIAL bleibt)
     PEN->>AUD: logPenaltyChange(STORNIERT)
     AUD->>DB: insert AuditLog
+    PEN->>DB: offene Mahngebühren dieser Strafe stornieren
+    PEN->>AUD: logPenaltyChange(ERLASSEN) je Mahngebühr
   end
 ```
 
@@ -128,24 +133,27 @@ Der Kassenwart verbucht eine freigegebene Strafe mit einem Klick als bar oder pe
 sequenceDiagram
   autonumber
   actor K as Kassenwart
-  participant KW as Kassenwart-Ansicht
+  participant KW as Kasse<br/>(/kasse, Offen)
   participant ACT as Eingaben verarbeiten<br/>(Server Actions)
-  participant AUTH as Einloggen & Rollenprüfung<br/>(Auth)
-  participant PAY as Zahlungen verbuchen<br/>(PaymentService)
+  participant AUTH as Einloggen & Rechteprüfung<br/>(Auth)
+  participant PAY as Teamkasse & Zahlungen<br/>(PaymentService)
   participant RULES as Regelverwaltung<br/>(Penalties)
   participant AUD as Protokollierung<br/>(AuditService)
   participant DB as Datenbank<br/>(PostgreSQL)
 
   K->>KW: öffnet /kasse
-  KW->>AUTH: requireRole(CASHIER, TRAINER)
-  KW->>PAY: getTeamCash()
-  PAY->>DB: freigegebene Strafen lesen
-  PAY->>RULES: openAmount(), isOverdue(), weeksOverdue()
-  PAY-->>KW: offene (überfällige zuerst) und bezahlte Strafen, Summen
+  KW->>AUTH: requireMember(), can("kasse.ansehen")
+  KW->>PAY: getTeamCash(teamId)
+  PAY->>PAY: applyLateFees(teamId)
+  PAY->>RULES: missingLateFeeWeeks()
+  PAY->>DB: fehlende Mahngebühren anlegen (automatisch, mit Protokoll)
+  PAY->>DB: Forderungen und Kassenbuch lesen
+  PAY->>RULES: openAmount(), isOverdue(), balance(), cashBalance()
+  PAY-->>KW: offene (überfällig markiert) und bezahlte Forderungen, Salden, Kassenstand
   K->>KW: Klick „Bezahlt (bar)“
   KW->>ACT: payAction(entryId, CASH)
-  ACT->>AUTH: assertRole(CASHIER)
-  ACT->>PAY: recordPayment(entryId, kassenwartId, CASH)
+  ACT->>AUTH: assertMember("kasse.buchen")
+  ACT->>PAY: recordPayment({teamId, entryId, actorId, method: CASH})
   activate PAY
   PAY->>DB: BEGIN, Strafe lesen
   PAY->>RULES: applyPayment(entry, CASH) → PAID_CASH
@@ -154,7 +162,7 @@ sequenceDiagram
   AUD->>DB: insert AuditLog
   PAY->>DB: COMMIT
   deactivate PAY
-  ACT-->>KW: Strafe wandert zu „Bezahlte Strafen“
+  ACT-->>KW: Forderung wandert zu „Bezahlt“
 ```
 
 ## Zustandsautomat einer Strafe
@@ -171,7 +179,6 @@ stateDiagram-v2
   PARTIAL --> PAID: Kassenwart verbucht Rest
   PENDING_APPROVAL --> CANCELLED: verworfen
   OPEN --> CANCELLED: storniert
-  PARTIAL --> CANCELLED: storniert
   PAID --> [*]
   CANCELLED --> [*]
 ```
@@ -189,11 +196,12 @@ stateDiagram-v2
   PARTIAL --> PARTIAL: weitere Teilzahlung
   PARTIAL --> PAID_CASH: Rest bar bezahlt
   PARTIAL --> PAID_PAYPAL: Rest per PayPal
-  OPEN --> CANCELLED: Status nachträglich nicht mehr UNEXCUSED
-  PARTIAL --> CANCELLED: Status nachträglich nicht mehr UNEXCUSED
+  OPEN --> CANCELLED: Trainer storniert / Status nachträglich nicht mehr UNEXCUSED
   PAID_CASH --> [*]
   PAID_PAYPAL --> [*]
   CANCELLED --> [*]
 ```
 
-Im Saldo zählen nur `OPEN` und `PARTIAL` (Funktion `isOutstanding` in `src/domain/penalties.ts`). Jeder Zustandswechsel wird im `AuditLog` protokolliert. Seit P4 sind alle Übergänge umgesetzt (Zahlungen: `recordPayment` im PaymentService, Regel `applyPayment` in der Regelverwaltung). Überfällig ist kein eigener Zustand: Eine Strafe in `OPEN` oder `PARTIAL` mit abgelaufener Frist wird in der Kassenwart-Ansicht nur markiert (`isOverdue`); die Mahngebühr von 5 € je Woche wird angezeigt, aber noch nicht automatisch gebucht.
+Im Saldo zählen nur `OPEN` und `PARTIAL` (Funktion `isOutstanding` in `src/domain/penalties.ts`). Jeder Zustandswechsel wird im `AuditLog` protokolliert. Eine teilweise bezahlte Strafe (`PARTIAL`) wird nicht mehr automatisch storniert, wenn der Trainer die Anwesenheit ändert: Es ist schon Geld geflossen, das klärt der Kassenwart.
+
+Manuelle Strafen (Kasse → Strafe vergeben) starten beim Trainer direkt in `OPEN`, bei Betreuer und Kassenwart in `PENDING_APPROVAL`. Beiträge starten in `OPEN`. Überfällig ist kein eigener Zustand: Für jede angefangene Woche nach der Frist legt `applyLateFees` automatisch eine eigene Forderung „Mahngebühr“ (`kind = LATE_FEE`, 5 €) in `OPEN` an, die denselben Zuständen folgt; der Kassenwart kann sie erlassen (`CANCELLED`, Protokoll „ERLASSEN“), dann kommt sie nicht wieder.

@@ -7,6 +7,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db";
 import { applyAuditLogSchutz } from "../prisma/auditLogSchutz";
+import { createPastSession, createTestTeam } from "./helpers/testTeam";
 
 const run = process.env.RUN_DB_TESTS === "1";
 
@@ -14,22 +15,19 @@ describe.skipIf(!run)("Audit-Log-Schutz bei gleichzeitigem Einspielen (D-01)", (
   let auditId: string;
 
   beforeAll(async () => {
-    const trainer = await prisma.user.create({ data: { name: "D-01 Trainer", role: "TRAINER" } });
-    const player = await prisma.user.create({ data: { name: "D-01 Spieler", role: "PLAYER" } });
-    const session = await prisma.trainingSession.create({
-      data: {
-        title: "D-01 Testtraining",
-        startsAt: new Date(Date.now() - 86_400_000),
-        responseDeadline: new Date(Date.now() - 2 * 86_400_000),
-        createdById: trainer.id,
-      },
-    });
+    const t = await createTestTeam("D-01", { trainer: "TRAINER", player: "PLAYER" });
+    const session = await createPastSession(t.teamId, t.users.trainer);
     const attendance = await prisma.attendance.create({
-      data: { sessionId: session.id, userId: player.id, status: "EXCUSED" },
+      data: { sessionId: session.id, userId: t.users.player, status: "EXCUSED" },
     });
     auditId = (
       await prisma.auditLog.create({
-        data: { attendanceId: attendance.id, actorId: trainer.id, action: "ANWESENHEIT_GESETZT" },
+        data: {
+          teamId: t.teamId,
+          attendanceId: attendance.id,
+          actorId: t.users.trainer,
+          action: "ANWESENHEIT_GESETZT",
+        },
       })
     ).id;
   });

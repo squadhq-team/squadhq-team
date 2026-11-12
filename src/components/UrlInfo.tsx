@@ -1,9 +1,16 @@
 "use client";
-/** Zeigt eine Erfolgs- oder Hinweismeldung aus der Adresse (?info=…) auf jeder Seite, z. B. nach dem Bestätigungslink. */
+/** Zeigt Erfolgs- oder Fehlermeldungen aus der Adresse (?info=… / ?fehler=…) oben auf jeder Seite. */
 import { useSearchParams } from "next/navigation";
-import { InfoNotice } from "./ui";
+import { ErrorNotice, InfoNotice } from "./ui";
 
 export function UrlInfo() {
-  const info = useSearchParams().get("info");
-  return info ? <InfoNotice message={info} /> : null;
+  const params = useSearchParams();
+  const info = params.get("info");
+  const fehler = params.get("fehler");
+  return (
+    <>
+      {fehler && <ErrorNotice message={fehler} />}
+      {info && <InfoNotice message={info} />}
+    </>
+  );
 }

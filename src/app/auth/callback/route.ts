@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     if (safeNext) return NextResponse.redirect(new URL(safeNext, origin));
     // Bestätigungslink nach der Registrierung: direkt in den eigenen Bereich
     const user = await getCurrentUser();
-    const url = new URL(user ? homeFor(user.role) : "/", origin);
+    const url = new URL(user ? homeFor(user) : "/", origin);
     url.searchParams.set("info", "Deine E-Mail-Adresse ist bestätigt. Willkommen bei SquadHQ!");
     return NextResponse.redirect(url);
   }

@@ -81,7 +81,7 @@ Weitere Ordner: `prisma/` Datenmodell, Demo-Daten, Strafenkatalog und Datenbank-
 | --- | --- | --- |
 | Bezeichner im Code (Variablen, Funktionen, Typen) | **Englisch** | `recordPayment`, `getTeamCash`, `PenaltyEntry` |
 | Texte in der App, Kommentare, Doku, Testnamen, Commits | **Deutsch** | „Bezahlt (bar)“, `it("lehnt zu hohe Beträge ab")` |
-| URLs und Query-Parameter (sieht der Nutzer) | Deutsch, klein | `/kasse`, `/trainer/neu`, `?fehler=…` |
+| URLs und Query-Parameter (sieht der Nutzer) | Deutsch, klein | `/kasse`, `/termine/neu`, `?fehler=…` |
 | Funktionen, Variablen | `camelCase`, Verb vorne | `approvePenalty`, `listSessions`, `isOverdue` |
 | Funktionen, die etwas liefern | `get…` (eins), `list…` (mehrere), `is…`/`has…` (ja/nein) | `getPlayerAccount`, `listAuditLog`, `isOutstanding` |
 | Server Actions | Name endet auf `Action` (Ausnahme: `login`, `loginWithPassword`, `logout`) | `payAction`, `createSessionAction` |
@@ -109,7 +109,7 @@ Weitere Ordner: `prisma/` Datenmodell, Demo-Daten, Strafenkatalog und Datenbank-
 ## 7. Fehlerbehandlung und Sicherheit
 
 - Fachliche Fehler werfen ein `Error` mit **deutscher, verständlicher Meldung** (z. B. „Der Betrag ist höher als der offene Rest.“). Server Actions fangen ihn ab und zeigen ihn mit `?fehler=…` auf der Seite an (`ErrorNotice`).
-- **Jede Server Action prüft zuerst die Rolle** (`assertRole`) und ruft dann genau einen Service auf. Jede Seite mit Rollenbereich prüft mit `requireRole` (frei sind nur Einloggen und Registrieren).
+- **Jede Server Action prüft zuerst Team und Recht** (`assertMember("kasse.buchen")` usw., Rechte-Tabelle in `src/domain/permissions.ts`) und ruft dann den zuständigen Service auf. Jede Seite im Team prüft mit `requireMember(recht)` (frei sind nur Einloggen, Registrieren und Datenschutz). Jede Service-Funktion bekommt die `teamId` und liest oder ändert nur Daten dieses Teams.
 - Was zusammengehört, läuft in **einer Transaktion** (`prisma.$transaction`), z. B. Zahlung buchen + Protokolleintrag.
 - **Audit-Log nie ändern oder löschen**, nur neue Einträge schreiben (`src/services/auditService.ts`, Datenbank-Trigger in `prisma/auditLogSchutz.ts`).
 - Keine Geheimnisse im Repo: `.env` ist in `.gitignore`, nur `.env.example` mit Platzhaltern wird eingecheckt.

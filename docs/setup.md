@@ -14,7 +14,7 @@ Voraussetzung: Node.js 20 oder neuer und eine PostgreSQL-Datenbank (lokal oder S
 ```bash
 npm install
 cp .env.example .env
-npm run db:reset   # legt Tabellen an, lädt Demo-Daten und schützt das Audit-Log (löscht vorhandene Daten!)
+npm run db:reset   # legt Tabellen an, lädt Demo-Daten und Testkonten, schützt das Audit-Log (löscht vorhandene Daten!)
 npm run dev
 ```
 
@@ -36,13 +36,27 @@ Registrieren, Anmelden und „Passwort vergessen“ laufen über Supabase Auth. 
 3. **Adressen erlauben:** Supabase → Authentication → URL Configuration
    - Site URL: `https://squadhq-omega.vercel.app`
    - Redirect URLs: `https://squadhq-omega.vercel.app/**` und `http://localhost:3000/**`
-4. **E-Mail-Bestätigung:** Supabase → Authentication → Sign In / Providers → Email → „Confirm email“.
-   Der eingebaute Mailversand von Supabase schickt nur wenige Mails pro Stunde und ist für Tests gedacht. Solange kein eigener Mailserver (SMTP, z. B. Brevo oder Resend) eingetragen ist, „Confirm email“ **ausschalten**: Dann ist man nach dem Registrieren sofort angemeldet. „Passwort vergessen“ braucht immer eine Mail.
+4. **Eigener Mailversand (SMTP) und E-Mail-Bestätigung.** Der eingebaute Mailversand von Supabase schickt nur wenige Mails pro Stunde und ist nur für Tests gedacht. Für echte Nutzer ein eigenes Postfach eintragen, am einfachsten ein Gmail-Konto des Teams:
+   1. Im Google-Konto die Bestätigung in zwei Schritten einschalten, dann unter https://myaccount.google.com/apppasswords ein **App-Passwort** erzeugen (16 Zeichen, nur einmal sichtbar).
+   2. Supabase → Authentication → Emails → **SMTP Settings** → „Enable custom SMTP“: Host `smtp.gmail.com`, Port `587`, Benutzername = Gmail-Adresse, Passwort = App-Passwort, Absender = dieselbe Gmail-Adresse, Absendername `SquadHQ`. Speichern.
+   3. Supabase → Authentication → **Rate Limits**: „Rate limit for sending emails“ auf z. B. 100 pro Stunde erhöhen (Gmail erlaubt etwa 500 Mails am Tag).
+   4. Supabase → Authentication → Sign In / Providers → Email → **„Confirm email“ einschalten**. Neue Konten bekommen dann eine Mail und landen nach dem Klick auf den Link in der App; auf `/bestaetigen` lässt sich die Mail erneut anfordern.
+   Ohne eigenes SMTP „Confirm email“ ausgeschaltet lassen: Dann ist man nach dem Registrieren sofort angemeldet. „Passwort vergessen“ braucht immer eine Mail.
 5. **Optional, empfohlen: Mail-Links auf jedem Gerät gültig machen.** Supabase → Authentication → Emails → Templates. Im Template „Reset Password“ den Link ersetzen durch
    `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=recovery&next=/passwort-neu`
    und in „Confirm signup“ durch `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email`.
    Ohne diese Änderung funktioniert der Link nur im selben Browser, in dem er angefordert wurde.
 6. **Datenbank:** `npm run db:reset` (oder ohne Datenverlust `npx prisma db push` und `npm run db:audit-schutz`). Neu dabei: Spalte `User.authId` und Row Level Security auf allen Tabellen, damit niemand über die REST-Schnittstelle von Supabase an die Tabellen kommt.
+
+## Testkonten zum Ausprobieren
+`npm run db:reset` legt bei einer Supabase-Datenbank drei Konten im Demo-Team an (`prisma/testkonten.ts`): `trainer@squadhq.test`, `spieler@squadhq.test` und `kassenwart@squadhq.test`, Passwort siehe [README](../README.md). Sie werden direkt in `auth.users` angelegt (bestätigt, ohne Mail) bzw. bei jedem Reset auf das bekannte Passwort zurückgesetzt. Im Demo-Team sind Passwort ändern, Team verlassen und Konto löschen gesperrt; an die Domain `.test` verschickt die App keine Mails. Lokal ohne Supabase gibt es die Tabelle `auth.users` nicht, dann bleibt nur die Demo-Anmeldung.
+
+## Push-Benachrichtigungen und Erinnerungen
+Neue, geänderte und abgesagte Termine, neue Strafen, Ankündigungen und Umfragen kommen als Push aufs Handy; einmal täglich (9 Uhr UTC, `vercel.json`) erinnert ein Job alle im Kader, die bei einem Termin mit Rückmeldefrist in den nächsten 30 Stunden noch nicht geantwortet haben.
+1. Schlüssel einmal erzeugen: `npx web-push generate-vapid-keys`
+2. In Vercel (Production) und lokal in `.env` eintragen: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (z. B. `mailto:` plus Team-Adresse) und `CRON_SECRET` (lange zufällige Zeichenkette; Vercel schickt sie beim Cron-Aufruf automatisch mit).
+3. Neu deployen. Im Profil erscheint dann „Benachrichtigungen an“. Auf dem iPhone geht Push nur, wenn SquadHQ über „Teilen → Zum Home-Bildschirm“ hinzugefügt und von dort geöffnet wurde.
+Ohne die Schlüssel läuft die App normal, nur ohne Push.
 
 Weitere Schalter: `DEMO_LOGIN=off` blendet die Demo-Anmeldung aus (für echte Nutzer). `AUTH_SECRET` signiert das Demo-Cookie (ohne Angabe wird ein Geheimnis aus `DATABASE_URL` abgeleitet). `SITE_URL` legt die Adresse für Links in Mails fest (sonst die aufgerufene Adresse).
 
@@ -61,6 +75,8 @@ npx prisma db push          # Schema übernehmen (z. B. Löschschutz des Audit-L
 npm run db:audit-schutz     # Audit-Log gegen Ändern und Löschen sperren (Datenbank-Trigger)
 npm run db:sync-katalog     # Strafenkatalog an prisma/strafenkatalog.ts angleichen
 ```
+**Achtung:** `npm run db:reset` löscht alle Daten, auch alle echten Teams und Mitglieder. Sobald echte Nutzer in der App sind, für Schema-Änderungen nur noch die drei Befehle oben verwenden.
+
 Ist das Audit-Log geschützt, lassen sich Protokolleinträge nicht mehr löschen. `npm run db:seed` allein bricht dann ab; `npm run db:reset` setzt die Datenbank komplett neu auf.
 
 ## Tests

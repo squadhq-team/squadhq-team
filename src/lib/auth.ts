@@ -4,12 +4,14 @@
  *   die Sitzung steht in signierten Cookies von Supabase; über User.authId ist das Konto mit unserem Nutzer verknüpft.
  * - Demo-Anmeldung für Präsentationen: Personen ohne Konto per Klick, gemerkt in einem eigenen, signierten Cookie.
  *   Abschaltbar mit der Umgebungsvariable DEMO_LOGIN=off.
- * Seiten und Services nutzen nur getCurrentUser/requireRole/assertRole und merken vom Anmeldeweg nichts.
+ * Seiten und Actions nutzen nur getCurrentUser/requireMember/assertMember und merken vom Anmeldeweg nichts.
+ * Rechte stehen in einer Tabelle (src/domain/permissions.ts) und werden hier mit `can()` abgefragt.
  */
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import type { Role, User } from "@prisma/client";
+import type { Team, User } from "@prisma/client";
 import { prisma } from "./db";
+import { isTestAccountEmail, can as roleCan, type Permission } from "@/domain/permissions";
 import { cookieSecret, sign, verify } from "./signedCookie";
 import { createSupabaseServerClient, isSupabaseConfigured } from "./supabase";
 import { ensureAppUser, translateAuthError, validateNewPassword } from "./registration";
@@ -32,40 +34,88 @@ export async function getCurrentUser(): Promise<User | null> {
     // getUser() prüft die Sitzung bei Supabase (nicht nur das Cookie), deshalb ist das Ergebnis vertrauenswürdig
     const { data } = await supabase.auth.getUser();
     if (data.user)
-      return ensureAppUser({ id: data.user.id, email: data.user.email, name: data.user.user_metadata?.name });
+      return ensureAppUser({
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.user_metadata?.name,
+        joinCode: data.user.user_metadata?.joinCode,
+      });
   }
   if (!isDemoLoginEnabled()) return null;
   const id = verify((await cookies()).get(DEMO_COOKIE)?.value, cookieSecret());
   if (!id) return null;
-  return prisma.user.findFirst({ where: { id, authId: null } });
+  return prisma.user.findFirst({ where: { id, deletedAt: null, team: { isDemo: true } } });
 }
 
-/** Für Seiten: leitet zur Anmeldung um, wenn die Rolle nicht passt. */
-export async function requireRole(...roles: Role[]): Promise<User> {
+/** Angemeldetes Mitglied eines Teams (teamId ist gesetzt). */
+export type Member = User & { teamId: string; team: Team };
+
+/** Darf das Mitglied das? (Rechte-Tabelle REQ-SEC-01) */
+export function can(user: Pick<User, "role">, permission: Permission): boolean {
+  return roleCan(user.role, permission);
+}
+
+async function loadMember(user: User | null): Promise<Member | null> {
+  if (!user?.teamId) return null;
+  const team = await prisma.team.findUnique({ where: { id: user.teamId } });
+  return team ? ({ ...user, teamId: user.teamId, team } as Member) : null;
+}
+
+/**
+ * Für Seiten: angemeldet und Mitglied eines Teams, sonst Umleitung zur Anmeldung bzw. zum Team-Beitritt.
+ * Mit `permission` zusätzlich Rechteprüfung; ohne Recht geht es zurück zur Startseite.
+ */
+export async function requireMember(permission?: Permission): Promise<Member> {
   const user = await getCurrentUser();
   if (!user) redirect("/");
-  if (!roles.includes(user.role)) redirect(homeFor(user.role));
-  return user;
+  const member = await loadMember(user);
+  if (!member) redirect("/willkommen");
+  if (permission && !can(member, permission)) redirect("/start");
+  return member;
 }
 
 /** Für Server Actions: wirft statt umzuleiten. */
-export async function assertRole(...roles: Role[]): Promise<User> {
+export async function assertMember(permission?: Permission): Promise<Member> {
+  const member = await loadMember(await getCurrentUser());
+  if (!member) throw new Error("Bitte melde dich an und tritt einem Team bei.");
+  if (permission && !can(member, permission)) throw new Error("Keine Berechtigung für diese Aktion.");
+  return member;
+}
+
+/** Für Seiten ohne Team (Team gründen oder beitreten): nur angemeldet. */
+export async function requireUser(): Promise<User> {
   const user = await getCurrentUser();
-  if (!user || !roles.includes(user.role)) throw new Error("Keine Berechtigung für diese Aktion.");
+  if (!user) redirect("/");
   return user;
 }
 
-/** Demo-Anmeldung: die Demo-Personen (ohne Supabase-Konto) zur Auswahl; leer, wenn die Demo-Anmeldung aus ist. */
-export async function listLoginUsers(): Promise<User[]> {
-  if (!isDemoLoginEnabled()) return [];
-  return prisma.user.findMany({ where: { authId: null }, orderBy: [{ role: "asc" }, { name: "asc" }] });
+/** Für Server Actions ohne Team. */
+export async function assertUser(): Promise<User> {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Bitte melde dich an.");
+  return user;
 }
 
-/** Demo-Anmeldung: nur Demo-Personen ohne Konto. Meldet eine laufende Supabase-Sitzung vorher ab. */
+/** Gehört die Person zum Demo-Team? Dort sind Passwort ändern, Austritt und Löschen abgeschaltet. */
+export async function isInDemoTeam(user: Pick<User, "teamId">): Promise<boolean> {
+  if (!user.teamId) return false;
+  return !!(await prisma.team.findUnique({ where: { id: user.teamId }, select: { isDemo: true } }))?.isDemo;
+}
+
+/** Demo-Anmeldung: die Personen des Demo-Teams zur Auswahl; leer, wenn die Demo-Anmeldung aus ist. */
+export async function listLoginUsers(): Promise<User[]> {
+  if (!isDemoLoginEnabled()) return [];
+  return prisma.user.findMany({
+    where: { deletedAt: null, team: { isDemo: true } },
+    orderBy: [{ role: "asc" }, { name: "asc" }],
+  });
+}
+
+/** Demo-Anmeldung: nur Personen des Demo-Teams. Meldet eine laufende Supabase-Sitzung vorher ab. */
 export async function signIn(userId: string): Promise<User> {
   if (!isDemoLoginEnabled()) throw new Error("Die Demo-Anmeldung ist abgeschaltet.");
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
-  if (user.authId) throw new Error("Dieses Konto meldet sich mit E-Mail und Passwort an.");
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, include: { team: true } });
+  if (!user.team?.isDemo || user.deletedAt) throw new Error("Dieses Konto meldet sich mit E-Mail und Passwort an.");
   await (await createSupabaseServerClient())?.auth.signOut();
   (await cookies()).set(DEMO_COOKIE, sign(user.id, cookieSecret()), {
     httpOnly: true,
@@ -83,7 +133,12 @@ export async function signInWithPassword(email: string, password: string): Promi
   const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
   if (error || !data.user) throw new Error(translateAuthError(error?.message ?? ""));
   (await cookies()).delete(DEMO_COOKIE);
-  return ensureAppUser({ id: data.user.id, email: data.user.email, name: data.user.user_metadata?.name });
+  return ensureAppUser({
+    id: data.user.id,
+    email: data.user.email,
+    name: data.user.user_metadata?.name,
+    joinCode: data.user.user_metadata?.joinCode,
+  });
 }
 
 /** Abmelden: Supabase-Sitzung beenden und Demo-Cookie löschen. */
@@ -99,6 +154,8 @@ export async function signOut(): Promise<void> {
 export async function requestPasswordReset(email: string, redirectTo: string): Promise<void> {
   const supabase = await createSupabaseServerClient();
   if (!supabase) throw new Error("Passwort zurücksetzen ist noch nicht eingerichtet.");
+  // Testkonten (Domain .test) können keine Mails empfangen; ihr Passwort steht in der README
+  if (isTestAccountEmail(email)) return;
   const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo });
   if (error && /rate limit|too many/i.test(error.message)) throw new Error(translateAuthError(error.message));
 }
@@ -110,6 +167,8 @@ export async function updatePassword(password: string, repeat: string): Promise<
   const supabase = await createSupabaseServerClient();
   const { data } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
   if (!supabase || !data.user) throw new Error("Der Link ist abgelaufen. Bitte fordere einen neuen an.");
+  if (isTestAccountEmail(data.user.email))
+    throw new Error("Das Passwort der Testkonten bleibt fest, damit alle sie nutzen können.");
   const { error } = await supabase.auth.updateUser({ password });
   if (error) throw new Error(translateAuthError(error.message));
 }
@@ -138,24 +197,20 @@ export async function exchangeAuthLink(params: {
   return ok;
 }
 
-export function homeFor(role: Role): string {
-  if (role === "TRAINER") return "/trainer";
-  if (role === "CASHIER") return "/kasse";
-  return "/spieler";
+/** Startseite nach der Anmeldung: ohne Team zum Gründen/Beitreten, sonst die Übersicht. */
+export function homeFor(user: Pick<User, "teamId">): string {
+  return user.teamId ? "/start" : "/willkommen";
 }
 
-/** Welche Bereiche eine Rolle sehen darf (Navigation). Muss zu den requireRole-Aufrufen der Seiten passen. */
-export function areasFor(role: Role): { href: string; label: string }[] {
-  if (role === "TRAINER")
-    return [
-      { href: "/trainer", label: "Trainings" },
-      { href: "/kasse", label: "Teamkasse" },
-      { href: "/protokoll", label: "Protokoll" },
-    ];
-  if (role === "CASHIER")
-    return [
-      { href: "/kasse", label: "Teamkasse" },
-      { href: "/protokoll", label: "Protokoll" },
-    ];
-  return [{ href: "/spieler", label: "Mein Bereich" }];
+/** Bestätigungsmail nach der Registrierung erneut schicken (wenn sie nicht ankam). */
+export async function resendConfirmation(email: string, redirectTo: string): Promise<void> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) throw new Error("Die Anmeldung mit E-Mail ist noch nicht eingerichtet.");
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email: email.trim().toLowerCase(),
+    options: { emailRedirectTo: redirectTo },
+  });
+  if (error && /rate limit|too many|security purposes/i.test(error.message))
+    throw new Error(translateAuthError(error.message));
 }

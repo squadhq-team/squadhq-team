@@ -1,35 +1,28 @@
 "use server";
 /**
- * Server Actions: dünne Schicht zwischen UI und Services.
- * Jede Action prüft zuerst die Rolle (REQ-SEC-01) und ruft dann genau einen Service auf.
- * Fehler aus Formularen mit Eingaben (Registrierung, Anmelden, Passwort, Training anlegen, Teilzahlung) werden als
- * Hinweis auf der Seite angezeigt (?fehler=…), Erfolgsmeldungen als ?info=…, statt die Seite abstürzen zu lassen.
+ * Server Actions für Anmeldung, Team gründen/beitreten, Profil, Konto und Push.
+ * Weitere Actions je Bereich: termine/actions.ts, kasse/actions.ts, team/actions.ts.
+ * Jede Action prüft zuerst Anmeldung und Recht (REQ-SEC-01) und ruft dann einen Service auf.
+ * Reaktion auf Erfolg/Fehler einheitlich über handle() (src/lib/actionUtils.ts).
  */
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
-import type { AttendanceStatus } from "@prisma/client";
 import { headers } from "next/headers";
 import {
-  assertRole,
+  assertMember,
+  assertUser,
   getCurrentUser,
   homeFor,
   requestPasswordReset,
+  resendConfirmation,
   signIn,
   signInWithPassword,
   signOut,
   updatePassword,
 } from "@/lib/auth";
 import { registerUser } from "@/lib/registration";
-import { parseBerlinDateTime, parseEuroToCents } from "@/lib/format";
-import type { PaymentMethod } from "@/domain/penalties";
-import { createSession, respond, setByTrainer } from "@/services/attendanceService";
-import { approvePenalty, discardPenalty } from "@/services/penaltyEngine";
-import { recordPayment } from "@/services/paymentService";
-
-const text = (formData: FormData, key: string) => formData.get(key)?.toString() ?? "";
-const message = (e: unknown) => (e instanceof Error ? e.message : "Unbekannter Fehler.");
-const withError = (path: string, e: unknown) => `${path}?fehler=${encodeURIComponent(message(e))}`;
-const withInfo = (path: string, info: string) => `${path}?info=${encodeURIComponent(info)}`;
+import { handle, text, withParam } from "@/lib/actionUtils";
+import { createTeam, deleteAccount, joinTeam, leaveTeam, updateProfile } from "@/services/teamService";
+import { removeSubscription, saveSubscription } from "@/services/pushService";
 
 /** Adresse der App (z. B. https://squadhq-omega.vercel.app) für Links in Mails von Supabase. */
 async function siteOrigin(): Promise<string> {
@@ -40,78 +33,70 @@ async function siteOrigin(): Promise<string> {
   return `${proto}://${host}`;
 }
 
-/** Demo-Anmeldung per Klick (Präsentation). */
+/** Demo-Anmeldung per Klick (Präsentation, nur Demo-Team). */
 export async function login(formData: FormData) {
   const user = await signIn(text(formData, "userId"));
-  redirect(homeFor(user.role));
+  redirect(homeFor(user));
 }
 
 /** Anmeldung mit E-Mail und Passwort (Supabase Auth). */
 export async function loginWithPassword(formData: FormData) {
-  let target: string;
-  try {
+  await handle(formData, "/", async () => {
     const user = await signInWithPassword(text(formData, "email"), text(formData, "password"));
-    target = homeFor(user.role);
-  } catch (e) {
-    target = withError("/", e);
-  }
-  redirect(target);
+    const code = text(formData, "code").trim();
+    if (!user.teamId && code) return { to: `/willkommen?code=${encodeURIComponent(code)}` };
+    return { to: homeFor(user) };
+  });
 }
 
 /**
- * Registrierung: neues Konto bei Supabase Auth, verknüpft mit einem Spieler.
+ * Registrierung: neues Konto bei Supabase Auth. Mit Team-Code aus der Einladung tritt es direkt dem Team bei.
  * Verlangt Supabase eine E-Mail-Bestätigung, geht es danach über den Link in der Mail weiter.
  */
 export async function registerAction(formData: FormData) {
-  let target: string;
-  try {
+  await handle(formData, "/registrieren", async () => {
+    const email = text(formData, "email");
     const { user, needsConfirmation } = await registerUser(
       {
         name: text(formData, "name"),
-        email: text(formData, "email"),
+        email,
         password: text(formData, "password"),
         passwordRepeat: text(formData, "passwordRepeat"),
+        joinCode: text(formData, "code"),
       },
       `${await siteOrigin()}/auth/callback`,
     );
-    target = needsConfirmation
-      ? withInfo(
-          "/",
-          "Fast geschafft: Bitte bestätige deine E-Mail-Adresse über den Link in der Mail, die wir dir geschickt haben.",
-        )
-      : homeFor(user.role);
-  } catch (e) {
-    target = withError("/registrieren", e);
-  }
-  redirect(target);
+    if (needsConfirmation) return { to: `/bestaetigen?email=${encodeURIComponent(email.trim().toLowerCase())}` };
+    return { to: homeFor(user) };
+  });
+}
+
+/** Bestätigungsmail erneut schicken. */
+export async function resendConfirmationAction(formData: FormData) {
+  await handle(formData, "/bestaetigen", async () => {
+    await resendConfirmation(text(formData, "email"), `${await siteOrigin()}/auth/callback`);
+    return { info: "Wir haben die Mail noch einmal geschickt. Schau auch im Spam-Ordner nach." };
+  });
 }
 
 /** Passwort vergessen: Mail mit Link anfordern. Die Antwort ist immer gleich, damit niemand Konten ausforschen kann. */
 export async function requestPasswordResetAction(formData: FormData) {
-  let target: string;
-  try {
+  await handle(formData, "/passwort-vergessen", async () => {
     await requestPasswordReset(text(formData, "email"), `${await siteOrigin()}/auth/callback?next=/passwort-neu`);
-    target = withInfo(
-      "/",
-      "Wenn es zu dieser E-Mail ein Konto gibt, ist eine Mail mit einem Link zum Zurücksetzen unterwegs. Schau auch im Spam-Ordner nach.",
-    );
-  } catch (e) {
-    target = withError("/passwort-vergessen", e);
-  }
-  redirect(target);
+    return {
+      to: "/",
+      info: "Wenn es zu dieser E-Mail ein Konto gibt, ist eine Mail mit einem Link zum Zurücksetzen unterwegs. Schau auch im Spam-Ordner nach.",
+    };
+  });
 }
 
-/** Neues Passwort setzen (nach dem Link aus der Mail „Passwort vergessen“). */
+/** Neues Passwort setzen (nach „Passwort vergessen“ oder im Profil). */
 export async function updatePasswordAction(formData: FormData) {
-  let target: string;
-  try {
+  await handle(formData, "/passwort-neu", async () => {
     await updatePassword(text(formData, "password"), text(formData, "passwordRepeat"));
     const user = await getCurrentUser();
-    target = withInfo(user ? homeFor(user.role) : "/", "Dein Passwort ist geändert.");
-  } catch (e) {
-    target = withError("/passwort-neu", e);
-  }
-  redirect(target);
+    return { to: user ? homeFor(user) : "/", info: "Dein Passwort ist geändert." };
+  });
 }
 
 export async function logout() {
@@ -119,84 +104,70 @@ export async function logout() {
   redirect("/");
 }
 
-/** REQ-ATT-01: 1-Klick-Rückmeldung des Spielers */
-export async function respondAction(formData: FormData) {
-  const user = await assertRole("PLAYER");
-  await respond({
-    playerId: user.id,
-    sessionId: text(formData, "sessionId"),
-    status: text(formData, "status") as AttendanceStatus,
-    note: formData.get("note")?.toString(),
+/** Team gründen: wer gründet, wird Trainer. */
+export async function createTeamAction(formData: FormData) {
+  await handle(formData, "/willkommen", async () => {
+    const user = await assertUser();
+    await createTeam(user.id, text(formData, "name"));
+    return { to: "/team", info: "Dein Team ist angelegt. Teile jetzt den Team-Code mit deiner Mannschaft." };
   });
-  revalidatePath("/spieler");
 }
 
-/** MVP-1: Trainer legt ein Training an */
-export async function createSessionAction(formData: FormData) {
-  const user = await assertRole("TRAINER");
-  let target: string;
-  try {
-    const deadline = text(formData, "responseDeadline");
-    const session = await createSession({
-      trainerId: user.id,
-      title: text(formData, "title"),
-      startsAt: parseBerlinDateTime(text(formData, "startsAt")),
-      responseDeadline: deadline ? parseBerlinDateTime(deadline) : undefined,
-      location: text(formData, "location"),
+/** Mit Team-Code beitreten: neue Mitglieder sind Spieler. */
+export async function joinTeamAction(formData: FormData) {
+  await handle(formData, "/willkommen", async () => {
+    const user = await assertUser();
+    const team = await joinTeam(user.id, text(formData, "code"));
+    return { to: "/start", info: `Willkommen bei ${team.name}!` };
+  });
+}
+
+/** Eigenes Profil speichern (#51). */
+export async function updateProfileAction(formData: FormData) {
+  await handle(formData, "/profil", async () => {
+    const user = await assertUser();
+    await updateProfile(user.id, {
+      name: text(formData, "name"),
+      phone: text(formData, "phone"),
+      position: text(formData, "position"),
+      shirtNumber: text(formData, "shirtNumber"),
     });
-    target = `/trainer/training/${session.id}`;
+    return { info: "Profil gespeichert." };
+  });
+}
+
+/** Team verlassen. */
+export async function leaveTeamAction(formData: FormData) {
+  await handle(formData, "/profil", async () => {
+    const user = await assertMember();
+    await leaveTeam(user.id);
+    return { to: "/willkommen", info: "Du hast das Team verlassen." };
+  });
+}
+
+/** Konto löschen (Datenschutz). Verlangt die Eingabe LÖSCHEN als Bestätigung. */
+export async function deleteAccountAction(formData: FormData) {
+  let target = "/";
+  try {
+    if (text(formData, "confirm").trim().toUpperCase() !== "LÖSCHEN")
+      throw new Error("Bitte zur Bestätigung LÖSCHEN eingeben.");
+    const user = await assertUser();
+    await deleteAccount(user.id);
+    await signOut();
+    target = withParam("/", "info", "Dein Konto ist gelöscht.");
   } catch (e) {
-    target = withError("/trainer/neu", e);
+    target = withParam("/profil", "fehler", e instanceof Error ? e.message : "Fehler beim Löschen.");
   }
-  revalidatePath("/trainer");
-  revalidatePath("/spieler");
   redirect(target);
 }
 
-/** REQ-ATT-02: Trainer bestätigt die Anwesenheit nach dem Training */
-export async function setAttendanceAction(formData: FormData) {
-  const user = await assertRole("TRAINER");
-  const sessionId = text(formData, "sessionId");
-  await setByTrainer({
-    trainerId: user.id,
-    sessionId,
-    playerId: text(formData, "playerId"),
-    status: text(formData, "status") as AttendanceStatus,
-  });
-  revalidatePath(`/trainer/training/${sessionId}`);
+/** Push-Benachrichtigungen an diesem Gerät an- oder abmelden (#26). Wird vom Browser-Skript aufgerufen. */
+export async function savePushSubscription(sub: { endpoint: string; keys: { p256dh: string; auth: string } }) {
+  const user = await assertUser();
+  await saveSubscription(user.id, sub);
 }
 
-/** REQ-PEN-02: Strafvorschlag freigeben */
-export async function approveAction(formData: FormData) {
-  const user = await assertRole("TRAINER");
-  await approvePenalty(text(formData, "entryId"), user.id);
-  revalidatePath(`/trainer/training/${text(formData, "sessionId")}`);
-}
-
-/** REQ-PEN-02: Strafvorschlag verwerfen */
-export async function discardAction(formData: FormData) {
-  const user = await assertRole("TRAINER");
-  await discardPenalty(text(formData, "entryId"), user.id);
-  revalidatePath(`/trainer/training/${text(formData, "sessionId")}`);
-}
-
-/** REQ-PEN-04 (MVP-5): Kassenwart verbucht eine Zahlung, 1 Klick = ganzer offener Rest, mit Betrag = Teilzahlung */
-export async function payAction(formData: FormData) {
-  const user = await assertRole("CASHIER");
-  const method = text(formData, "method") as PaymentMethod;
-  if (method !== "CASH" && method !== "PAYPAL") throw new Error("Unbekannte Zahlungsart.");
-  const amount = text(formData, "amount").trim();
-  let target: string | null = null;
-  try {
-    await recordPayment({
-      entryId: text(formData, "entryId"),
-      actorId: user.id,
-      method,
-      amountCents: amount ? parseEuroToCents(amount) : undefined,
-    });
-  } catch (e) {
-    target = withError("/kasse", e);
-  }
-  revalidatePath("/kasse");
-  if (target) redirect(target);
+export async function deletePushSubscription(endpoint: string) {
+  const user = await assertUser();
+  await removeSubscription(user.id, endpoint);
 }

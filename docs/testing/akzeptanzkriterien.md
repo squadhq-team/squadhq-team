@@ -26,10 +26,31 @@
 
 Getestet in `tests/payments.test.ts` und `tests/p4Flow.db.test.ts`.
 
-## REQ-PEN-03 Überfällige Strafen (umgesetzt P4)
+## REQ-PEN-03 Überfällige Strafen und Mahngebühr (P4 markiert, seit 12.11.2026 automatisch gebucht)
 
 **Given** freigegebene Strafe, Frist (7 Tage ab Freigabe) abgelaufen, noch nicht (voll) bezahlt
-**Then** markiert die Kassenwart-Ansicht sie als überfällig mit der Zahl angefangener Wochen und der Mahngebühr laut Katalog (5 € je Woche), bucht die Gebühr aber noch nicht
+**Then** markiert die Kasse sie als überfällig und bucht für jede angefangene Woche genau eine Mahngebühr (Betrag aus der Katalogregel „Zahlungsverzug“, 5 €) als eigene offene Forderung; im Protokoll steht „automatisch“
+
+**When** die Kasse erneut geöffnet wird (auch gleichzeitig von zwei Personen)
+**Then** entsteht keine doppelte Mahngebühr (eindeutig je Strafe und Woche)
+
+**When** der Kassenwart eine Mahngebühr erlässt oder die Strafe storniert wird
+**Then** ist die Gebühr storniert und wird nicht erneut gebucht (getestet in `tests/features.db.test.ts`)
+
+## REQ-SEC-01 Teams, Team-Code und Rechte (seit 12.11.2026)
+
+**AK7 Given** ein neues Konto ohne Team
+**When** es ein Team gründet
+**Then** ist es Trainer dieses Teams, das Team hat einen 6-stelligen Team-Code und den Strafenkatalog als Vorlage
+
+**When** ein anderes Konto den Team-Code eingibt (Groß-/Kleinschreibung, Leerzeichen egal)
+**Then** ist es Spieler in diesem Team; den Code des Demo-Teams kann niemand verwenden
+
+**AK8 Given** zwei Teams
+**Then** sieht und ändert jedes Mitglied nur Termine, Forderungen, Kasse, Protokoll und Mitglieder des eigenen Teams
+
+**AK9 Given** die Rechte-Tabelle (`src/domain/permissions.ts`)
+**Then** darf nur der Kassenwart Zahlungen verbuchen, nur der Trainer Strafen freigeben und Rollen vergeben, und das Team behält immer mindestens einen Trainer (getestet in `tests/features.test.ts` und `tests/features.db.test.ts`)
 
 ## REQ-AUD-01 Lückenloses Audit-Log
 
@@ -48,6 +69,25 @@ Getestet in `tests/payments.test.ts` und `tests/p4Flow.db.test.ts`.
 - Unit-Test des Strafenkatalogs gegen den TSVK-Katalog 2026/27 (REQ-PEN-01, `tests/strafenkatalog.test.ts`)
 - Integrationstests für Rechte je Rolle (REQ-SEC-01)
 - End-to-End-Tests für 1-Klick-Zu-/Absage (REQ-ATT-01)
+
+## Testergebnisse Sprint „Features & Design“ (12.11.2026)
+
+Lauf am 12.11.2026 gegen eine lokale, leere PostgreSQL-16-Testdatenbank: `RUN_DB_TESTS=1 npm test` **105 von 105 bestanden**; `npm test` ohne Datenbank 84 bestanden, 21 übersprungen; Lint, Formatierung, Typen und `npm run build` ohne Fehler.
+
+| Ebene | Datei | Tests | Ergebnis |
+|---|---|---|---|
+| Unit | tests/penalties.test.ts (REQ-PEN-02, REQ-PEN-03) | 9 | bestanden |
+| Unit | tests/strafenkatalog.test.ts (REQ-PEN-01, Pos. 9 Spiel, Zahlungsverzug) | 14 | bestanden |
+| Unit | tests/payments.test.ts (REQ-PEN-04, AK4, Überfällige) | 19 | bestanden |
+| Unit | tests/registration.test.ts (Registrierung, Startseite je Konto, Uhrzeit) | 18 | bestanden |
+| Unit | tests/features.test.ts (Rechte AK9, Team-Code, Testkonten, manuelle Strafe, Mahngebühr-Wochen, Kassenstand, PayPal-Link, Beteiligung, Spielplan-Import) | 24 | bestanden |
+| Komponente (mit DB) | tests/penaltyFlow.db.test.ts (AK1–AK3, AK5) | 4 | bestanden |
+| Komponente (mit DB) | tests/p4Flow.db.test.ts (MVP-1, MVP-4, MVP-5, MVP-6/AK6, Registrierung) | 6 | bestanden |
+| Komponente (mit DB) | tests/features.db.test.ts (AK7, AK8, Rollen, Stellvertreter, Spiel-Strafe Pos. 9, manuelle Strafe, Mahngebühr, Kassenbuch, Beiträge, Umfrage, Import, Demo-Team gesperrt) | 10 | bestanden |
+| Komponente (mit DB) | tests/auditLogSchutz.db.test.ts (REQ-AUD-01, Regressionstest D-01) | 1 | bestanden |
+| **Summe** | | **105** | **105 bestanden** |
+
+Zusätzlich wurden alle Seiten für Trainer, Kassenwart und Spieler in der Handy-Ansicht (iPhone 13, Playwright) auf einem lokalen Produktions-Build aufgerufen: keine Fehlerseite, keine Fehler in der Browser-Konsole.
 
 ## Testergebnisse
 

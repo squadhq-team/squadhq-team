@@ -1,11 +1,11 @@
 /**
  * Unit-Tests für Registrierung, signierte Demo-Cookies, Fehlermeldungen von Supabase Auth,
- * Rollen-Navigation und Eingabe der Trainingszeit.
+ * Startseite nach der Anmeldung und Eingabe der Trainingszeit.
  */
 import { describe, expect, it } from "vitest";
 import { translateAuthError, validateNewPassword, validateRegistration } from "@/lib/registration";
 import { sign, verify } from "@/lib/signedCookie";
-import { areasFor, homeFor } from "@/lib/auth";
+import { homeFor } from "@/lib/auth";
 import { parseBerlinDateTime } from "@/lib/format";
 
 const valid = { name: "Max Muster", email: "max@example.org", password: "geheim123", passwordRepeat: "geheim123" };
@@ -52,14 +52,10 @@ describe("translateAuthError (Meldungen von Supabase Auth auf Deutsch)", () => {
   ])("%s", (input, expected) => expect(translateAuthError(input)).toMatch(expected));
 });
 
-describe("Rollen und Bereiche (REQ-SEC-01)", () => {
-  it("Kassenwart landet in der Teamkasse und sieht Kasse und Protokoll", () => {
-    expect(homeFor("CASHIER")).toBe("/kasse");
-    expect(areasFor("CASHIER").map((a) => a.href)).toEqual(["/kasse", "/protokoll"]);
-  });
-
-  it("Spieler sehen weder Kasse noch Protokoll", () => {
-    expect(areasFor("PLAYER").map((a) => a.href)).toEqual(["/spieler"]);
+describe("Startseite nach der Anmeldung", () => {
+  it("ohne Team geht es zum Gründen bzw. Beitreten, mit Team zur Übersicht", () => {
+    expect(homeFor({ teamId: null })).toBe("/willkommen");
+    expect(homeFor({ teamId: "t1" })).toBe("/start");
   });
 });
 

@@ -1,36 +1,36 @@
 import Link from "next/link";
 import { isEmailLoginEnabled } from "@/lib/auth";
-import { Card, ErrorNotice, inputClass } from "@/components/ui";
+import { Card, Field, PageHeader, btn, inputClass } from "@/components/ui";
 import { ActionForm, SubmitButton } from "@/components/SubmitButton";
 import { registerAction } from "../actions";
 
-/** Registrierung: eigenes Konto bei Supabase Auth anlegen. Neue Konten sind Spieler. */
-export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ fehler?: string }> }) {
-  const { fehler } = await searchParams;
+/** Registrierung: eigenes Konto bei Supabase Auth. Mit Team-Code (aus der Einladung) direkt im Team. */
+export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ code?: string }> }) {
+  const { code } = await searchParams;
   return (
     <>
-      <div>
-        <h1 className="text-2xl font-bold">Konto erstellen</h1>
-        <p className="text-sm text-gray-600">Du wirst als Spieler angelegt. Trainer und Kassenwart vergibt das Team.</p>
-      </div>
-      <ErrorNotice message={fehler} />
+      <PageHeader
+        title="Konto erstellen"
+        subtitle={
+          code
+            ? "Nach dem Registrieren bist du direkt in deinem Team."
+            : "Danach gründest du ein Team oder trittst mit dem Team-Code deiner Mannschaft bei."
+        }
+      />
       {!isEmailLoginEnabled() && (
         <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200">
           Die Registrierung ist auf diesem Server noch nicht eingerichtet.
         </p>
       )}
       <Card>
-        <ActionForm action={registerAction} className="space-y-3 text-sm">
-          <label className="block space-y-1">
-            <span className="font-medium">Name</span>
+        <ActionForm action={registerAction} className="space-y-3">
+          <Field label="Vor- und Nachname">
             <input name="name" autoComplete="name" required className={inputClass} />
-          </label>
-          <label className="block space-y-1">
-            <span className="font-medium">E-Mail</span>
+          </Field>
+          <Field label="E-Mail">
             <input name="email" type="email" autoComplete="email" required className={inputClass} />
-          </label>
-          <label className="block space-y-1">
-            <span className="font-medium">Passwort (mindestens 8 Zeichen)</span>
+          </Field>
+          <Field label="Passwort" hint="Mindestens 8 Zeichen.">
             <input
               name="password"
               type="password"
@@ -39,9 +39,8 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
               required
               className={inputClass}
             />
-          </label>
-          <label className="block space-y-1">
-            <span className="font-medium">Passwort wiederholen</span>
+          </Field>
+          <Field label="Passwort wiederholen">
             <input
               name="passwordRepeat"
               type="password"
@@ -50,15 +49,32 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
               required
               className={inputClass}
             />
-          </label>
-          <SubmitButton className="w-full rounded-lg bg-emerald-700 px-3 py-2.5 font-medium text-white hover:bg-emerald-800">
-            Registrieren
-          </SubmitButton>
+          </Field>
+          <Field label="Team-Code (falls du einen hast)" hint="Bekommst du von deinem Trainer, z. B. K7M2QX.">
+            <input
+              name="code"
+              defaultValue={code ?? ""}
+              autoCapitalize="characters"
+              autoComplete="off"
+              className={`${inputClass} uppercase tracking-widest`}
+            />
+          </Field>
+          <p className="text-xs text-stone-500">
+            Mit dem Registrieren stimmst du der Verarbeitung deiner Daten laut{" "}
+            <Link href="/datenschutz" className="text-brand-700 underline">
+              Datenschutzhinweis
+            </Link>{" "}
+            zu.
+          </p>
+          <SubmitButton className={`w-full ${btn.primary}`}>Registrieren</SubmitButton>
         </ActionForm>
       </Card>
       <p className="text-center text-sm">
         Schon ein Konto?{" "}
-        <Link href="/" className="text-emerald-800 hover:underline">
+        <Link
+          href={code ? `/?code=${encodeURIComponent(code)}` : "/"}
+          className="font-medium text-brand-700 hover:underline"
+        >
           Anmelden
         </Link>
       </p>
