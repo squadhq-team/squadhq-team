@@ -113,7 +113,7 @@ export function translateAuthError(message: string): string {
   const m = message.toLowerCase();
   if (m.includes("invalid login credentials")) return "E-Mail oder Passwort ist falsch.";
   if (m.includes("email not confirmed"))
-    return "Bitte bestätige zuerst deine E-Mail-Adresse über den Link in der Mail.";
+    return "Bitte bestätige zuerst deine E-Mail-Adresse über den Link in der Mail. Keine Mail da? Schau auch im Spam-Ordner nach.";
   if (m.includes("already registered")) return "Mit dieser E-Mail gibt es schon ein Konto.";
   if (m.includes("password should be") || m.includes("weak password")) return "Das Passwort ist zu schwach.";
   if (m.includes("rate limit") || m.includes("too many"))

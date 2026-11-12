@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Card, Field, PageHeader, btn, inputClass } from "@/components/ui";
+import { Card, Field, PageHeader, SpamHint, btn, inputClass } from "@/components/ui";
 import { ActionForm, SubmitButton } from "@/components/SubmitButton";
 import { requestPasswordResetAction } from "../actions";
 
@@ -20,6 +20,7 @@ export default function ForgotPasswordPage() {
           <SubmitButton className={`w-full ${btn.primary}`}>Link schicken</SubmitButton>
         </ActionForm>
       </Card>
+      <SpamHint />
       <p className="text-center text-sm">
         <Link href="/" className="font-medium text-brand-700 hover:underline">
           Zurück zur Anmeldung

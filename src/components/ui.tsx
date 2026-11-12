@@ -122,6 +122,17 @@ export function InfoNotice({ message }: { message?: string | string[] }) {
   );
 }
 
+/** Hinweis bei Mails der App (Bestätigung, Passwort vergessen): Sie landen manchmal im Spam-Ordner. */
+export function SpamHint() {
+  return (
+    <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200">
+      <strong>Keine Mail bekommen?</strong> Schau bitte auch im <strong>Spam- oder Werbung-Ordner</strong> nach. Die
+      Mail kommt von „SquadHQ“ und kann ein paar Minuten dauern. Markiere sie am besten als „Kein Spam“, dann kommen
+      auch die Erinnerungen sicher an.
+    </p>
+  );
+}
+
 export function EmptyState({ children }: { children: ReactNode }) {
   return <p className="py-2 text-sm text-stone-500">{children}</p>;
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Card, PageHeader, btn } from "@/components/ui";
+import { Card, PageHeader, SpamHint, btn } from "@/components/ui";
 import { ActionForm, SubmitButton } from "@/components/SubmitButton";
 import { resendConfirmationAction } from "../actions";
 
@@ -14,9 +14,10 @@ export default async function ConfirmPage({ searchParams }: { searchParams: Prom
           Wir haben dir eine Mail{email ? ` an ${email}` : ""} geschickt. Tippe auf den Link darin, dann bist du
           angemeldet.
         </p>
-        <p className="mt-2 text-sm text-stone-600">
-          Keine Mail da? Schau im Spam-Ordner nach oder lass sie dir noch einmal schicken.
-        </p>
+        <div className="mt-3">
+          <SpamHint />
+        </div>
+        <p className="mt-3 text-sm text-stone-600">Immer noch nichts da? Dann lass sie dir noch einmal schicken.</p>
         {email && (
           <ActionForm action={resendConfirmationAction} className="mt-4">
             <input type="hidden" name="email" value={email} />
