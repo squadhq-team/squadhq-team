@@ -49,7 +49,7 @@ Registrieren, Anmelden und „Passwort vergessen“ laufen über Supabase Auth. 
 6. **Datenbank:** `npm run db:reset` (oder ohne Datenverlust `npx prisma db push` und `npm run db:audit-schutz`). Neu dabei: Spalte `User.authId` und Row Level Security auf allen Tabellen, damit niemand über die REST-Schnittstelle von Supabase an die Tabellen kommt.
 
 ## Testkonten zum Ausprobieren
-`npm run db:reset` legt bei einer Supabase-Datenbank drei Konten im Demo-Team an (`prisma/testkonten.ts`): `trainer@squadhq.test`, `spieler@squadhq.test` und `kassenwart@squadhq.test`, Passwort siehe [README](../README.md). Sie werden direkt in `auth.users` angelegt (bestätigt, ohne Mail) bzw. bei jedem Reset auf das bekannte Passwort zurückgesetzt. Im Demo-Team sind Passwort ändern, Team verlassen und Konto löschen gesperrt; an die Domain `.test` verschickt die App keine Mails. Lokal ohne Supabase gibt es die Tabelle `auth.users` nicht, dann bleibt nur die Demo-Anmeldung.
+`npm run db:reset` legt bei einer Supabase-Datenbank drei Konten im Demo-Team an (`prisma/testkonten.ts`): `trainer@squadhq.test`, `spieler@squadhq.test` und `kassenwart@squadhq.test`, Passwort siehe [README](../README.md). Sie werden direkt in `auth.users` angelegt (bestätigt, ohne Mail) bzw. bei jedem Reset auf das bekannte Passwort zurückgesetzt. Im Demo-Team sind Passwort ändern, Team verlassen und Konto löschen gesperrt; an die Domain `.test` verschickt die App keine Mails. Lokal ohne Supabase gibt es die Tabelle `auth.users` nicht; ohne Supabase ist auch keine Anmeldung möglich. Die frühere Ein-Klick-Demo-Anmeldung ist seit 12.11.2026 ausgebaut, zum Ausprobieren dienen die Testkonten.
 
 ## Push-Benachrichtigungen und Erinnerungen
 Neue, geänderte und abgesagte Termine, neue Strafen, Ankündigungen und Umfragen kommen als Push aufs Handy; einmal täglich (9 Uhr UTC, `vercel.json`) erinnert ein Job alle im Kader, die bei einem Termin mit Rückmeldefrist in den nächsten 30 Stunden noch nicht geantwortet haben.
@@ -58,7 +58,7 @@ Neue, geänderte und abgesagte Termine, neue Strafen, Ankündigungen und Umfrage
 3. Neu deployen. Im Profil erscheint dann „Benachrichtigungen an“. Auf dem iPhone geht Push nur, wenn SquadHQ über „Teilen → Zum Home-Bildschirm“ hinzugefügt und von dort geöffnet wurde.
 Ohne die Schlüssel läuft die App normal, nur ohne Push.
 
-Weitere Schalter: `DEMO_LOGIN=off` blendet die Demo-Anmeldung aus (für echte Nutzer). `AUTH_SECRET` signiert das Demo-Cookie (ohne Angabe wird ein Geheimnis aus `DATABASE_URL` abgeleitet). `SITE_URL` legt die Adresse für Links in Mails fest (sonst die aufgerufene Adresse).
+Weitere Schalter: `SITE_URL` legt die Adresse für Links in Mails fest (sonst die aufgerufene Adresse).
 
 ## Auf Vercel deployen
 1. Auf vercel.com mit GitHub anmelden, **Add New → Project**, das Repository `squadhq-team/squadhq-team` importieren.

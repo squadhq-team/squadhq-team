@@ -127,7 +127,7 @@ flowchart TB
   CRON -- "GET mit CRON_SECRET" --> P_JOB
 
   S1 -- "requireMember(recht)<br/>requireUser(), can()" --> AUTH
-  P_LOGIN -- "listLoginUsers()<br/>exchangeAuthLink()" --> AUTH
+  P_LOGIN -- "getCurrentUser()<br/>exchangeAuthLink()" --> AUTH
   P_START -- "listUpcoming(), countResponses()<br/>listMissingResponses()" --> ATT
   P_START -- "getPlayerAccount()<br/>listPendingForTeam()" --> PEN
   P_START -- "listAnnouncements(), listPolls()" --> NEWS
@@ -146,7 +146,7 @@ flowchart TB
   P_LOG -- "listAuditLog()" --> AUD
   P_JOB -- "sendDeadlineReminders()" --> PUSH
 
-  ACT -- "assertMember(recht), signIn()<br/>signInWithPassword(), signOut()<br/>updatePassword(), …" --> AUTH
+  ACT -- "assertMember(recht)<br/>signInWithPassword(), signOut()<br/>updatePassword(), …" --> AUTH
   ACT -- "registerUser()" --> REG
   ACT -- "createTeam(), joinTeam(), changeRole()<br/>removeMember(), deleteAccount(), …" --> TEAM
   ACT -- "respond(), setByTrainer(), createSession()<br/>setLineup(), importCalendar(), …" --> ATT
@@ -192,7 +192,7 @@ Lesend greifen die Seiten über die Services zu, schreibend nur über die Server
 
 | Schicht | Komponente (Codename) | Verantwortung | Angebotene Schnittstelle |
 | --- | --- | --- | --- |
-| 1 Präsentation | Einloggen & Registrieren (`/`, `/registrieren`, `/bestaetigen`, `/passwort-vergessen`, `/passwort-neu`, `/auth/callback`, `/willkommen`) | mit E-Mail und Passwort anmelden, Konto anlegen (optional mit Team-Code), Bestätigungsmail erneut senden, Passwort zurücksetzen, Team gründen oder beitreten; Demo-Anmeldung per Klick (abschaltbar mit `DEMO_LOGIN=off`) | – (UI) |
+| 1 Präsentation | Einloggen & Registrieren (`/`, `/registrieren`, `/bestaetigen`, `/passwort-vergessen`, `/passwort-neu`, `/auth/callback`, `/willkommen`) | mit E-Mail und Passwort anmelden, Konto anlegen (optional mit Team-Code), Bestätigungsmail erneut senden, Passwort zurücksetzen, Team gründen oder beitreten; zum Ausprobieren Testkonten im Demo-Team | – (UI) |
 | 1 Präsentation | Startseite (`/start`) | nächste Termine mit Zusage, fehlende Rückmeldungen, offene Freigaben, Kassenkonto, Neuigkeiten | – (UI) |
 | 1 Präsentation | Termine (`/termine`, `/termine/neu`, `/termine/[id]`, `/termine/[id]/bearbeiten`, `/termine/import`) | Termine je Typ, zu- und absagen (auch für Stellvertretene), Termin anlegen, bearbeiten, absagen, Anwesenheit bestätigen, Strafvorschläge freigeben, Aufstellung, Spielplan-Import | – (UI) |
 | 1 Präsentation | Kasse (`/kasse`, `/kasse/strafe`, `/kasse/katalog`, `/kasse/beitrag`, `/kasse/buchung`) | eigenes Kassenkonto mit PayPal-Link; Freigaben; offene und bezahlte Forderungen, Kassenbuch und Einstellungen (Kassenwart); Strafe vergeben, Katalog pflegen, Beiträge, Einnahmen/Ausgaben | – (UI) |
@@ -201,7 +201,7 @@ Lesend greifen die Seiten über die Services zu, schreibend nur über die Server
 | 1 Präsentation | Protokoll-Ansicht (`/protokoll`, MVP-6) | Audit-Log lesen (Trainer und Kassenwart) | – (UI) |
 | 1 Präsentation | Erinnerungs-Job (`/api/cron/erinnerungen`) | täglich von Vercel Cron aufgerufen, geschützt mit `CRON_SECRET` | `GET` |
 | 2 Anwendung | Eingaben verarbeiten (Server Actions in `src/app/actions.ts`, `termine/`, `kasse/`, `team/`, `neuigkeiten/actions.ts`) | Einstieg aller Schreibzugriffe: Recht prüfen, Service aufrufen, ggf. Push senden, Seite aktualisieren oder mit Meldung weiterleiten | siehe Module `ServerActions`, `TerminActions`, `KasseActions`, `TeamActions`, `NeuigkeitenActions` im [Klassendiagramm](klassendiagramm.md) |
-| 2 Anwendung | Einloggen & Rechteprüfung (Auth) | an- und abmelden über Supabase Auth bzw. Demo-Anmeldung (signiertes Cookie), Passwort zurücksetzen, aktuelle Person ermitteln, Mitgliedschaft und Rechte prüfen (REQ-SEC-01) | `getCurrentUser()`, `can()`, `requireMember()`, `assertMember()`, `requireUser()`, `assertUser()`, `isInDemoTeam()`, `listLoginUsers()`, `signIn()`, `signInWithPassword()`, `signOut()`, `requestPasswordReset()`, `updatePassword()`, `exchangeAuthLink()`, `homeFor()`, `resendConfirmation()`, `isEmailLoginEnabled()`, `isDemoLoginEnabled()` |
+| 2 Anwendung | Einloggen & Rechteprüfung (Auth) | an- und abmelden über Supabase Auth, Passwort zurücksetzen, aktuelle Person ermitteln, Mitgliedschaft und Rechte prüfen (REQ-SEC-01) | `getCurrentUser()`, `can()`, `requireMember()`, `assertMember()`, `requireUser()`, `assertUser()`, `isInDemoTeam()`, `signInWithPassword()`, `signOut()`, `requestPasswordReset()`, `updatePassword()`, `exchangeAuthLink()`, `homeFor()`, `resendConfirmation()`, `isEmailLoginEnabled()` |
 | 2 Anwendung | Registrierung (Registration) | Konto bei Supabase Auth anlegen und mit einem `User` verknüpfen (`authId`), mit Team-Code direkt beitreten; das Passwort kennt nur Supabase | `validateRegistration()`, `validateNewPassword()`, `registerUser()`, `ensureAppUser()`, `translateAuthError()` |
 | extern | Supabase Auth | Konten, Passwörter, Sitzungs-Cookies, Mails (Bestätigung, Passwort vergessen) über eigenes SMTP | REST-API über `@supabase/ssr` (`src/lib/supabase.ts`, `src/middleware.ts`) |
 | extern | Push-Dienst des Browsers | stellt Benachrichtigungen zu (Web Push, VAPID-Schlüssel) | Web-Push-Protokoll über `web-push` |

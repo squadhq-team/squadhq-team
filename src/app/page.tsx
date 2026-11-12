@@ -1,18 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentUser, homeFor, isEmailLoginEnabled, listLoginUsers } from "@/lib/auth";
-import { ROLE_LABEL } from "@/lib/format";
-import { Avatar, Card, btn, inputClass } from "@/components/ui";
+import { getCurrentUser, homeFor, isEmailLoginEnabled } from "@/lib/auth";
+import { Card, btn, inputClass } from "@/components/ui";
 import { Logo } from "@/components/icons";
 import { ActionForm, SubmitButton } from "@/components/SubmitButton";
-import { login, loginWithPassword } from "./actions";
+import { loginWithPassword } from "./actions";
 
-/** Einloggen: mit E-Mail und Passwort (Supabase Auth) oder per Demo-Anmeldung (Demo-Team) für Präsentationen. */
+/** Einloggen mit E-Mail und Passwort (Supabase Auth). Zum Ausprobieren: Testkonten aus der README. */
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ code?: string }> }) {
   const user = await getCurrentUser();
   if (user) redirect(homeFor(user));
   const { code } = await searchParams;
-  const users = await listLoginUsers();
   const emailLogin = isEmailLoginEnabled();
   return (
     <>
@@ -62,32 +60,6 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
               Neues Konto erstellen
             </Link>
           </div>
-        </Card>
-      )}
-      {users.length > 0 && (
-        <Card title="Demo ansehen">
-          <p className="mb-2 text-xs text-stone-500">
-            Ohne Konto ausprobieren: eine Person aus dem Demo-Team wählen und die App aus ihrer Rolle sehen.
-          </p>
-          <ul className="divide-y divide-stone-100">
-            {users.map((u) => (
-              <li key={u.id}>
-                <ActionForm action={login} className="flex items-center justify-between gap-2 py-2">
-                  <input type="hidden" name="userId" value={u.id} />
-                  <span className="flex items-center gap-2">
-                    <Avatar name={u.name} size="sm" />
-                    <span>
-                      <span className="block text-sm font-medium">{u.name}</span>
-                      <span className="block text-xs text-stone-500">{ROLE_LABEL[u.role]}</span>
-                    </span>
-                  </span>
-                  <SubmitButton className={`${btn.small} bg-stone-100 text-stone-800 hover:bg-stone-200`}>
-                    Ansehen
-                  </SubmitButton>
-                </ActionForm>
-              </li>
-            ))}
-          </ul>
         </Card>
       )}
       <p className="text-center text-xs text-stone-500">

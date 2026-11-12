@@ -84,7 +84,7 @@ Weitere Ordner: `prisma/` Datenmodell, Demo-Daten, Strafenkatalog und Datenbank-
 | URLs und Query-Parameter (sieht der Nutzer) | Deutsch, klein | `/kasse`, `/termine/neu`, `?fehler=…` |
 | Funktionen, Variablen | `camelCase`, Verb vorne | `approvePenalty`, `listSessions`, `isOverdue` |
 | Funktionen, die etwas liefern | `get…` (eins), `list…` (mehrere), `is…`/`has…` (ja/nein) | `getPlayerAccount`, `listAuditLog`, `isOutstanding` |
-| Server Actions | Name endet auf `Action` (Ausnahme: `login`, `loginWithPassword`, `logout`) | `payAction`, `createSessionAction` |
+| Server Actions | Name endet auf `Action` (Ausnahme: `loginWithPassword`, `logout`) | `payAction`, `createSessionAction` |
 | Konstanten | `UPPER_SNAKE_CASE` | `DUE_DAYS`, `MIN_PASSWORD_LENGTH`, `PENALTY_LABEL` |
 | Typen, Interfaces, React-Komponenten | `PascalCase` | `RuleLike`, `SubmitButton`, `ErrorNotice` |
 | Dateien mit React-Komponente | `PascalCase.tsx` | `SubmitButton.tsx` (Sammeldatei: `ui.tsx`) |

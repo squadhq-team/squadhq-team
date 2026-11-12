@@ -241,7 +241,7 @@ erDiagram
 | `AuditLog` betrifft genau eins: Forderung, Anwesenheit, Buchung **oder** Mitglied (CHECK `audit_log_genau_ein_bezug`) | Trainer-Änderungen an der Anwesenheit, Kassenbuch und Rollen kommen ins Protokoll, normale Spieler-Klicks nicht (Entscheidung Team 03.11.) |
 | `actorId` optional | automatische Buchungen (Mahngebühr) und gelöschte Konten haben keinen Bearbeiter |
 | Zahlungen ohne eigene Tabelle: `paidCents` + `method` an der Forderung, jede Zahlung als Protokolleintrag mit Betrag | reicht für bar, PayPal und Teilzahlung (MVP-5), jede Buchung bleibt nachvollziehbar |
-| Passwörter nur bei Supabase Auth, `User.authId` verknüpft das Konto (ohne Fremdschlüssel, weil `auth.users` in einem anderen Schema liegt) | Registrierung, Passwort vergessen, sichere Sitzungen ohne eigene Passwort-Speicherung; Demo-Personen haben kein Konto |
+| Passwörter nur bei Supabase Auth, `User.authId` verknüpft das Konto (ohne Fremdschlüssel, weil `auth.users` in einem anderen Schema liegt) | Registrierung, Passwort vergessen, sichere Sitzungen ohne eigene Passwort-Speicherung; im Demo-Team haben nur die drei Testkonten ein Konto |
 | Row Level Security auf allen Tabellen, ohne Freigabe-Regeln (`prisma/zugriffsschutz.ts`) | Tabellen sind nicht über die REST-Schnittstelle von Supabase erreichbar; Prisma als Eigentümer ist nicht betroffen |
 | eine `Attendance` je Mitglied und Termin (`@@unique`) | 1-Klick-Rückmeldung überschreibt die alte |
 | `note` optional | Absage ohne Rechtfertigungsdruck (Interview Spieler) |

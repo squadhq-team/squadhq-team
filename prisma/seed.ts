@@ -1,6 +1,6 @@
 /**
  * Demo-Daten für die Präsentationen (Stand Sprint Features & Design). Alle Zeiten relativ zum Ladetag, deshalb am Vortag `npm run db:reset`.
- * Alles gehört zum Demo-Team (isDemo): Nur dessen Personen erscheinen in der Demo-Anmeldung, echte Teams sehen nichts davon.
+ * Alles gehört zum Demo-Team (isDemo): niemand kann beitreten, echte Teams sehen nichts davon. Anmelden geht mit den Testkonten (prisma/testkonten.ts).
  * Strafenkatalog: vollständiger TSVK-Strafenkatalog 2026/27 aus prisma/strafenkatalog.ts
  * (Quelle: docs/anforderungen/strafenkatalog-tsvk-2026-27.md).
  * Personen sind erfunden.

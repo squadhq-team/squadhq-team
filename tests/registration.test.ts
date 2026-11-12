@@ -1,10 +1,9 @@
 /**
- * Unit-Tests für Registrierung, signierte Demo-Cookies, Fehlermeldungen von Supabase Auth,
+ * Unit-Tests für Registrierung, Fehlermeldungen von Supabase Auth,
  * Startseite nach der Anmeldung und Eingabe der Trainingszeit.
  */
 import { describe, expect, it } from "vitest";
 import { translateAuthError, validateNewPassword, validateRegistration } from "@/lib/registration";
-import { sign, verify } from "@/lib/signedCookie";
 import { homeFor } from "@/lib/auth";
 import { parseBerlinDateTime } from "@/lib/format";
 
@@ -24,22 +23,6 @@ describe("validateNewPassword (Passwort vergessen)", () => {
   it("akzeptiert gleiche Passwörter ab 8 Zeichen", () =>
     expect(validateNewPassword("geheim123", "geheim123")).toBeNull());
   it("lehnt zu kurze Passwörter ab", () => expect(validateNewPassword("kurz", "kurz")).toMatch(/8 Zeichen/));
-});
-
-describe("signierte Demo-Cookies", () => {
-  const secret = "test-geheimnis";
-
-  it("liefert den Wert bei gültiger Signatur zurück", () => {
-    expect(verify(sign("user123", secret), secret)).toBe("user123");
-  });
-
-  it("lehnt geänderte Werte, falsche Geheimnisse und unsignierte Cookies ab", () => {
-    const signed = sign("user123", secret);
-    expect(verify(signed.replace("user123", "user999"), secret)).toBeNull();
-    expect(verify(signed, "anderes-geheimnis")).toBeNull();
-    expect(verify("user123", secret)).toBeNull();
-    expect(verify(undefined, secret)).toBeNull();
-  });
 });
 
 describe("translateAuthError (Meldungen von Supabase Auth auf Deutsch)", () => {
