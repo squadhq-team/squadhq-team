@@ -12,10 +12,22 @@ import {
 import { getAttendanceList } from "@/services/attendanceService";
 import { listPendingForSession } from "@/services/penaltyEngine";
 import { listRespondents } from "@/services/teamService";
-import { Avatar, Badge, ButtonLink, Card, attendanceTone, btn, eventTone } from "@/components/ui";
+import { listVisibleRatingsForSession } from "@/services/ratingService";
+import {
+  Avatar,
+  Badge,
+  ButtonLink,
+  Card,
+  EmptyState,
+  attendanceTone,
+  btn,
+  eventTone,
+  inputClass,
+} from "@/components/ui";
 import { ActionForm, SubmitButton } from "@/components/SubmitButton";
 import { RespondForm } from "@/components/RespondForm";
-import { approveAction, discardAction, setAttendanceAction, setLineupAction } from "../actions";
+import { Stars } from "@/components/Rating";
+import { approveAction, discardAction, rateAction, setAttendanceAction, setLineupAction } from "../actions";
 
 const TRAINER_CHOICES = [
   { status: "ATTENDING", label: "Da", className: "bg-emerald-600 hover:bg-emerald-700" },
@@ -37,6 +49,7 @@ const GROUPS = [
  * Termin-Details für alle: Zusatzinfos (#48), eigene Rückmeldung, wer kommt.
  * Trainer/Betreuer: Anwesenheit nach dem Termin bestätigen (REQ-ATT-02), Aufstellung bei Spielen (#29).
  * Trainer: Strafvorschläge freigeben (REQ-PEN-02).
+ * Nach dem Training (#65): Trainer/Betreuer bewerten anwesende Spieler, Spieler sehen ihre eigene Bewertung.
  */
 export default async function EventPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireMember();
@@ -51,6 +64,11 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   const manage = can(user, "termine.verwalten");
   const confirm = can(user, "anwesenheit.bestaetigen") && started && !session.cancelledAt;
   const isGame = session.type === "GAME" || session.type === "TOURNAMENT";
+  const ratable = session.type === "TRAINING" && started && !session.cancelledAt;
+  const rater = ratable && can(user, "spieler.bewerten");
+  const ratings = ratable ? await listVisibleRatingsForSession(user, session.id) : [];
+  const ratingOf = (playerId: string) => ratings.find((r) => r.playerId === playerId);
+  const present = rows.filter((r) => r.attendance?.status === "ATTENDING");
   const grouped = GROUPS.map((g) => ({
     ...g,
     rows: rows.filter((r) => (r.attendance?.status ?? "NONE") === g.key),
@@ -180,6 +198,94 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
               </li>
             ))}
           </ul>
+        </Card>
+      )}
+
+      {rater && (
+        <Card title="Leistung bewerten">
+          <p className="mb-2 text-xs text-stone-500">
+            Für alle, die dabei waren: 1 bis 5 Sterne, die Notiz ist freiwillig. Erst die Notiz eintragen, dann auf die
+            Sterne tippen, das speichert beides. Der Spieler sieht nur seine eigene Bewertung, andere Spieler sehen sie
+            nicht.
+          </p>
+          {present.length === 0 && <EmptyState>Noch niemand als „Da“ bestätigt.</EmptyState>}
+          <ul className="divide-y divide-stone-100">
+            {present.map(({ player }) => {
+              const rating = ratingOf(player.id);
+              return (
+                <li key={player.id} className="py-3">
+                  <ActionForm action={rateAction} className="space-y-2">
+                    <input type="hidden" name="sessionId" value={session.id} />
+                    <input type="hidden" name="playerId" value={player.id} />
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="flex items-center gap-2">
+                        <Avatar name={player.name} size="sm" />
+                        <span className="font-medium">{player.name}</span>
+                      </span>
+                      <span className="flex items-center" role="group" aria-label={`Sterne für ${player.name}`}>
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <SubmitButton
+                            key={n}
+                            name="stars"
+                            value={String(n)}
+                            className={`h-10 w-9 text-2xl leading-none ${
+                              rating && n <= rating.stars ? "text-amber-500" : "text-stone-300 hover:text-amber-300"
+                            }`}
+                          >
+                            <span aria-hidden>★</span>
+                            <span className="sr-only">
+                              {n} {n === 1 ? "Stern" : "Sterne"}
+                            </span>
+                          </SubmitButton>
+                        ))}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        name="note"
+                        defaultValue={rating?.note ?? ""}
+                        maxLength={500}
+                        placeholder="Notiz, z. B. woran er arbeiten kann (freiwillig)"
+                        aria-label={`Notiz für ${player.name}`}
+                        className={inputClass}
+                      />
+                      {rating && (
+                        <SubmitButton
+                          name="stars"
+                          value="0"
+                          className={`${btn.small} shrink-0 bg-stone-100 text-stone-700 hover:bg-stone-200`}
+                        >
+                          Entfernen
+                        </SubmitButton>
+                      )}
+                    </div>
+                  </ActionForm>
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
+      )}
+
+      {ratable && !rater && ratings.length > 0 && (
+        <Card title={ratings.length === 1 && ratings[0].playerId === user.id ? "Deine Bewertung" : "Bewertung"}>
+          <ul className="space-y-3">
+            {ratings.map((r) => (
+              <li key={r.id}>
+                {(ratings.length > 1 || r.playerId !== user.id) && (
+                  <p className="text-sm font-medium">{r.player.name}</p>
+                )}
+                <Stars value={r.stars} className="text-2xl" />
+                {r.note && <p className="mt-1 whitespace-pre-line text-sm text-stone-700">„{r.note}“</p>}
+              </li>
+            ))}
+          </ul>
+          <Link
+            href="/team/statistik?ansicht=leistung"
+            className="mt-3 inline-block text-sm font-medium text-brand-700 hover:underline"
+          >
+            Alle Bewertungen und Verlauf →
+          </Link>
         </Card>
       )}
 

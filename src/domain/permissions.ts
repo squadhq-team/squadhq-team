@@ -10,6 +10,8 @@ export type Permission =
   | "termine.verwalten"
   /** Anwesenheit nach dem Termin bestätigen */
   | "anwesenheit.bestaetigen"
+  /** Spieler nach dem Training bewerten und alle Leistungsbewertungen sehen (#65) */
+  | "spieler.bewerten"
   /** Strafvorschläge freigeben oder verwerfen (zweite Stufe des Zwei-Stufen-Workflows) */
   | "strafen.freigeben"
   /** Strafe aus dem Katalog vergeben (Trainer direkt offen, sonst als Vorschlag) */
@@ -33,6 +35,7 @@ const RIGHTS: Record<Role, Permission[]> = {
   TRAINER: [
     "termine.verwalten",
     "anwesenheit.bestaetigen",
+    "spieler.bewerten",
     "strafen.freigeben",
     "strafen.vergeben",
     "katalog.pflegen",
@@ -41,7 +44,7 @@ const RIGHTS: Record<Role, Permission[]> = {
     "team.verwalten",
     "news.schreiben",
   ],
-  ASSISTANT: ["termine.verwalten", "anwesenheit.bestaetigen", "strafen.vergeben", "news.schreiben"],
+  ASSISTANT: ["termine.verwalten", "anwesenheit.bestaetigen", "spieler.bewerten", "strafen.vergeben", "news.schreiben"],
   CASHIER: [
     "strafen.vergeben",
     "katalog.pflegen",
@@ -71,6 +74,18 @@ export function mayRespondFor(
 ): boolean {
   if (!can(member.role, "kader")) return false;
   return member.id === actor.id || member.managedById === actor.id;
+}
+
+/**
+ * #65: Darf `viewer` die Leistungsbewertungen von `member` sehen (inklusive Notizen)?
+ * Trainer und Betreuer sehen alle, ein Spieler nur seine eigenen (damit er weiß, woran er arbeiten kann),
+ * ein Stellvertreter bzw. Elternteil die des Mitglieds, für das er eingetragen ist. Andere Spieler nie.
+ */
+export function mayViewRatingsOf(
+  viewer: { id: string; role: Role },
+  member: { id: string; managedById: string | null },
+): boolean {
+  return can(viewer.role, "spieler.bewerten") || member.id === viewer.id || member.managedById === viewer.id;
 }
 
 /**

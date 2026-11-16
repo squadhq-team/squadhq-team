@@ -49,6 +49,7 @@ export async function recordPayment(params: {
       action: result.status === "PARTIAL" ? "TEILZAHLUNG" : "BEZAHLT",
       oldStatus: entry.status,
       newStatus: result.status,
+      amountCents: result.bookedCents,
       note: `${formatEuro(result.bookedCents)} ${params.method === "CASH" ? "bar" : "per PayPal"}`,
     });
   });

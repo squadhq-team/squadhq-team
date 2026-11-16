@@ -58,6 +58,8 @@ export async function logPenaltyChange(
     action: AuditAction;
     oldStatus: PenaltyStatus | null;
     newStatus: PenaltyStatus;
+    /** gebuchter Betrag bei Zahlungen (Kassenverlauf, #65) */
+    amountCents?: number;
     note?: string;
   },
 ) {

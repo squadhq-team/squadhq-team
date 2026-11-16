@@ -1,5 +1,5 @@
 "use server";
-/** Server Actions für Termine (REQ-ATT-01/02, #47, #48, #29, Spielplan-Import, Strafvorschläge REQ-PEN-02). */
+/** Server Actions für Termine (REQ-ATT-01/02, #47, #48, #29, Spielplan-Import, Strafvorschläge REQ-PEN-02, Bewertung #65). */
 import type { AttendanceStatus, EventType, LineupSlot } from "@prisma/client";
 import { assertMember } from "@/lib/auth";
 import { handle, text } from "@/lib/actionUtils";
@@ -15,6 +15,7 @@ import {
   type SessionInput,
 } from "@/services/attendanceService";
 import { approvePenalty, discardPenalty } from "@/services/penaltyEngine";
+import { ratePlayer, removeRating } from "@/services/ratingService";
 import { notifyTeam } from "@/services/pushService";
 
 /** 1-Klick-Rückmeldung (für sich selbst oder als Stellvertreter). */
@@ -115,6 +116,25 @@ export async function setAttendanceAction(formData: FormData) {
       playerId: text(formData, "playerId"),
       status: text(formData, "status") as AttendanceStatus,
     });
+  });
+}
+
+/**
+ * #65: Spieler nach dem Training bewerten (Trainer, Betreuer). Ein Klick auf einen Stern speichert Sterne und Notiz,
+ * „0“ nimmt die Bewertung zurück.
+ */
+export async function rateAction(formData: FormData) {
+  await handle(formData, "/termine", async () => {
+    const user = await assertMember("spieler.bewerten");
+    const base = {
+      teamId: user.teamId,
+      rater: user,
+      sessionId: text(formData, "sessionId"),
+      playerId: text(formData, "playerId"),
+    };
+    const stars = Number(text(formData, "stars"));
+    if (stars === 0) await removeRating(base);
+    else await ratePlayer({ ...base, stars, note: text(formData, "note") });
   });
 }
 

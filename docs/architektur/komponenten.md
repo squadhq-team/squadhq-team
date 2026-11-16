@@ -1,6 +1,6 @@
 # Komponentenmodell und Schichtenarchitektur
 
-> Stand Sprint „Features & Design“, 12.11.2026. Die Kästen tragen konkrete Namen dessen, was die Komponente tut (seit dem P3-Feedback). Komponentendiagramm und Schichtenarchitektur sind **ein und dasselbe Bild**: Die Rahmen sind die fünf Schichten, die Kästen darin die Komponenten. Alle Namen stehen in der [Namensliste](namensliste.md) und sind in allen Diagrammen gleich.
+> Stand 16.11.2026 (mit Statistik und Leistungsbewertung #65). Die Kästen tragen konkrete Namen dessen, was die Komponente tut (seit dem P3-Feedback). Komponentendiagramm und Schichtenarchitektur sind **ein und dasselbe Bild**: Die Rahmen sind die fünf Schichten, die Kästen darin die Komponenten. Alle Namen stehen in der [Namensliste](namensliste.md) und sind in allen Diagrammen gleich.
 >
 > **Legende:** Rahmen = Schicht (bzw. Knoten), Kasten = Komponente mit Codename in Klammern, Zylinder = Datenbank, Pfeil = Aufruf in Pfeilrichtung (nur von oben nach unten), Pfeilbeschriftung = genutzte Schnittstelle. Alle Komponenten sind im Code, es gibt keine geplanten Kästen.
 
@@ -38,6 +38,7 @@ flowchart TB
       PAY["Teamkasse & Zahlungen<br/>(PaymentService)"]
       NEWS["Neuigkeiten & Chat<br/>(NewsService)"]
       STATS["Statistik<br/>(StatsService)"]
+      RATE["Leistungsbewertung<br/>(RatingService)"]
       PUSH["Benachrichtigungen<br/>(PushService, ReminderService,<br/>MailService)"]
       AUD["Protokollierung<br/>(AuditService)"]
     end
@@ -47,6 +48,7 @@ flowchart TB
       RULES["Regelverwaltung<br/>(Penalties)"]
       ICS["Spielplan-Import<br/>(Ics)"]
       REM["Erinnerungs-Empfänger<br/>(Reminders)"]
+      STATR["Statistik-Regeln<br/>(Statistics)"]
     end
     subgraph S5["5 Datenzugriff"]
       direction TB
@@ -91,7 +93,7 @@ flowchart TB
       P_START["Startseite<br/>/start"]
       P_TER["Termine<br/>/termine, /termine/neu, /termine/[id],<br/>/termine/[id]/bearbeiten, /termine/import"]
       P_KASSE["Kasse<br/>/kasse, /kasse/strafe, /kasse/katalog,<br/>/kasse/beitrag, /kasse/buchung"]
-      P_TEAM["Team & Profil<br/>/team, /team/statistik, /profil"]
+      P_TEAM["Team & Profil<br/>/team, /team/statistik,<br/>/team/statistik/[id], /profil"]
       P_NEWS["Neuigkeiten & Chat<br/>/neuigkeiten, /neuigkeiten/umfrage, /chat"]
       P_LOG["Protokoll-Ansicht<br/>/protokoll"]
       P_JOB["Erinnerungs-Job<br/>/api/cron/erinnerungen"]
@@ -108,6 +110,7 @@ flowchart TB
       PAY["Teamkasse & Zahlungen<br/>PaymentService"]
       NEWS["Neuigkeiten & Chat<br/>NewsService"]
       STATS["Statistik<br/>StatsService"]
+      RATE["Leistungsbewertung<br/>RatingService"]
       PUSH["Benachrichtigungen<br/>PushService, ReminderService,<br/>MailService"]
       AUD["Protokollierung<br/>AuditService"]
     end
@@ -116,6 +119,7 @@ flowchart TB
       RULES["Regelverwaltung<br/>Penalties, penalties.ts"]
       ICS["Spielplan-Import<br/>Ics, ics.ts"]
       REM["Erinnerungs-Empfänger<br/>Reminders, reminders.ts"]
+      STATR["Statistik-Regeln<br/>Statistics, statistics.ts"]
     end
     subgraph S5["5 Datenzugriff"]
       ORM["Datenbankzugriff<br/>Prisma Client, src/lib/db.ts"]
@@ -139,13 +143,15 @@ flowchart TB
   P_START -- "listRespondents(), listSquad()" --> TEAM
   P_TER -- "listUpcoming(), listPast(), countResponses()<br/>getAttendanceList(), getSession()" --> ATT
   P_TER -- "listPendingForSession()" --> PEN
+  P_TER -- "listVisibleRatingsForSession()" --> RATE
   P_TER -- "listRespondents(), listSquad()" --> TEAM
   P_KASSE -- "getTeamCash(), paypalLinkFor()" --> PAY
   P_KASSE -- "getPlayerAccount(), listRules()<br/>listPendingForTeam()" --> PEN
   P_KASSE -- "listRespondents(), listSquad()" --> TEAM
   P_KASSE -- "listPast()" --> ATT
   P_TEAM -- "listMembers()" --> TEAM
-  P_TEAM -- "getParticipation()" --> STATS
+  P_TEAM -- "getParticipation(), getTopPenalties()<br/>getCashHistory()" --> STATS
+  P_TEAM -- "getRatingOverview()<br/>getPlayerRatings()" --> RATE
   P_TEAM -- "pushPublicKey(), mailConfigured()" --> PUSH
   P_NEWS -- "listAnnouncements()<br/>listPolls(), listMessages()" --> NEWS
   P_LOG -- "listAuditLog()" --> AUD
@@ -157,6 +163,7 @@ flowchart TB
   ACT -- "respond(), setByTrainer(), createSession()<br/>setLineup(), importCalendar(), …" --> ATT
   ACT -- "approvePenalty(), discardPenalty()<br/>createManualPenalty(), cancelPenalty(), …" --> PEN
   ACT -- "recordPayment(), addTransaction()<br/>createFees(), setPaypalMe(), …" --> PAY
+  ACT -- "ratePlayer(), removeRating()" --> RATE
   ACT -- "createAnnouncement(), createPoll()<br/>vote(), postMessage(), …" --> NEWS
   ACT -- "notifyTeam(), notifyUsers()<br/>saveSubscription()" --> PUSH
   AUTH -- "ensureAppUser()" --> REG
@@ -166,6 +173,8 @@ flowchart TB
   ATT -- "syncPenaltyForAttendance()" --> PEN
   ATT -- "listSquad()" --> TEAM
   STATS -- "listSquad()" --> TEAM
+  RATE -- "listSquad(), listRespondents()" --> TEAM
+  RATE -- "getSession()" --> ATT
   PEN -- "applyLateFees()" --> PAY
   TEAM -- "logMemberChange()" --> AUD
   ATT -- "logAttendanceChange()" --> AUD
@@ -181,7 +190,10 @@ flowchart TB
   ATT -- "parseIcs()" --> ICS
   PEN -- "suggestRuleForAttendance()<br/>dueDateFrom(), balance()" --> RULES
   PAY -- "applyPayment(), missingLateFeeWeeks()<br/>cashBalance(), paypalMeUrl()" --> RULES
-  STATS -- "participationRate()" --> RULES
+  STATS -- "participationRate(), cashBalance()" --> RULES
+  STATS -- "topPenalties(), cashHistory()<br/>centsFromPaymentNote()" --> STATR
+  RATE -- "ratingProblem(), ratingSummary()" --> STATR
+  RATE -- "can(), mayViewRatingsOf()" --> PERM
 
   S3 --> ORM
   AUTH --> ORM
@@ -203,9 +215,9 @@ Lesend greifen die Seiten über die Services zu, schreibend nur über die Server
 | --- | --- | --- | --- |
 | 1 Präsentation | Einloggen & Registrieren (`/`, `/registrieren`, `/bestaetigen`, `/passwort-vergessen`, `/passwort-neu`, `/auth/callback`, `/willkommen`) | mit E-Mail und Passwort anmelden, Konto anlegen (optional mit Team-Code), Bestätigungsmail erneut senden, Passwort zurücksetzen, Team gründen oder beitreten; zum Ausprobieren Testkonten im Demo-Team | – (UI) |
 | 1 Präsentation | Startseite (`/start`) | nächste Termine mit Zusage, fehlende Rückmeldungen, offene Freigaben, Kassenkonto, Neuigkeiten | – (UI) |
-| 1 Präsentation | Termine (`/termine`, `/termine/neu`, `/termine/[id]`, `/termine/[id]/bearbeiten`, `/termine/import`) | Termine je Typ, zu- und absagen (auch für Stellvertretene), Termin anlegen, bearbeiten, absagen, Anwesenheit bestätigen, Strafvorschläge freigeben, Aufstellung, Spielplan-Import | – (UI) |
+| 1 Präsentation | Termine (`/termine`, `/termine/neu`, `/termine/[id]`, `/termine/[id]/bearbeiten`, `/termine/import`) | Termine je Typ, zu- und absagen (auch für Stellvertretene), Termin anlegen, bearbeiten, absagen, Anwesenheit bestätigen, Spieler nach dem Training bewerten bzw. eigene Bewertung sehen, Strafvorschläge freigeben, Aufstellung, Spielplan-Import | – (UI) |
 | 1 Präsentation | Kasse (`/kasse`, `/kasse/strafe`, `/kasse/katalog`, `/kasse/beitrag`, `/kasse/buchung`) | eigenes Kassenkonto mit PayPal-Link; Freigaben; offene und bezahlte Forderungen, Kassenbuch und Einstellungen (Kassenwart); Strafe vergeben, Katalog pflegen, Beiträge, Einnahmen/Ausgaben | – (UI) |
-| 1 Präsentation | Team & Profil (`/team`, `/team/statistik`, `/profil`) | Mitglieder, Team-Code teilen, Rollen, Stellvertreter, Mitglieder ohne Konto; Beteiligungsstatistik; eigenes Profil, Passwort, Push, E-Mail-Erinnerung an/aus, Team verlassen, Konto löschen | – (UI) |
+| 1 Präsentation | Team & Profil (`/team`, `/team/statistik`, `/team/statistik/[id]`, `/profil`) | Mitglieder, Team-Code teilen, Rollen, Stellvertreter, Mitglieder ohne Konto; Statistik (Beteiligung, Leistung, Top-Strafen, Kassenverlauf) und Leistungsverlauf je Spieler; eigenes Profil, Passwort, Push, E-Mail-Erinnerung an/aus, Team verlassen, Konto löschen | – (UI) |
 | 1 Präsentation | Neuigkeiten & Chat (`/neuigkeiten`, `/neuigkeiten/umfrage`, `/chat`) | Ankündigungen, Umfragen mit Abstimmung, Team-Chat | – (UI) |
 | 1 Präsentation | Protokoll-Ansicht (`/protokoll`, MVP-6) | Audit-Log lesen (Trainer und Kassenwart) | – (UI) |
 | 1 Präsentation | Erinnerungs-Job (`/api/cron/erinnerungen`) | täglich von Vercel Cron aufgerufen, geschützt mit `CRON_SECRET`; erinnert per Push und E-Mail | `GET` |
@@ -220,11 +232,13 @@ Lesend greifen die Seiten über die Services zu, schreibend nur über die Server
 | 3 Services | Strafen vorschlagen & freigeben (PenaltyEngine) | Strafvorschlag nach Katalog (Training Pos. 8, Spiel Pos. 9), manuelle Strafe, Freigabe, Verwerfen, Storno, Kassenkonto, Katalog pflegen | `syncPenaltyForAttendance()`, `createManualPenalty()`, `approvePenalty()`, `discardPenalty()`, `cancelPenalty()`, `listPenaltiesForPlayer()`, `getPlayerAccount()`, `listPendingForSession()`, `listPendingForTeam()`, `listRules()`, `updateRule()`, `addRule()` |
 | 3 Services | Teamkasse & Zahlungen (PaymentService, MVP-4/5) | Zahlung bar oder PayPal verbuchen (auch Teilzahlung), automatische Mahngebühr, Teamkasse mit Kassenbuch, Einnahmen/Ausgaben, Beiträge, PayPal.me-Link | `recordPayment()`, `applyLateFees()`, `getTeamCash()`, `addTransaction()`, `cancelTransaction()`, `createFees()`, `setPaypalMe()`, `paypalLinkFor()` |
 | 3 Services | Neuigkeiten & Chat (NewsService) | Ankündigungen, Umfragen mit Einfach- oder Mehrfachauswahl, Team-Chat | `createAnnouncement()`, `listAnnouncements()`, `deleteAnnouncement()`, `createPoll()`, `isPollOpen()`, `listPolls()`, `vote()`, `closePoll()`, `postMessage()`, `listMessages()`, `deleteMessage()` |
-| 3 Services | Statistik (StatsService) | Beteiligung je Mitglied | `getParticipation()` |
+| 3 Services | Statistik (StatsService) | Beteiligung je Mitglied, häufigste Strafen, Kassenstand im Zeitverlauf (letzter Punkt = Teamkasse) | `getParticipation()`, `getTopPenalties()`, `getCashHistory()` |
+| 3 Services | Leistungsbewertung (RatingService) | Spieler nach dem Training bewerten (nur Trainer/Betreuer, nur Anwesende), Bewertungen nur an Berechtigte ausgeben (#65) | `ratePlayer()`, `removeRating()`, `listVisibleRatingsForSession()`, `getRatingOverview()`, `getPlayerRatings()` |
 | 3 Services | Benachrichtigungen (PushService, ReminderService, MailService) | Push-Abos speichern, Mitglieder bzw. Team benachrichtigen (auch Stellvertreter); täglich Erinnerung vor der Rückmeldefrist per Push und E-Mail; Mails über SMTP verschicken | `pushPublicKey()`, `pushConfigured()`, `saveSubscription()`, `removeSubscription()`, `hasSubscription()`, `notifyUsers()`, `notifyTeam()`, `sendDeadlineReminders()`, `reminderMessage()`, `mailConfigured()`, `appUrl()`, `createMailer()`, `escapeHtml()` |
 | 3 Services | Protokollierung (AuditService) | unveränderliches Protokoll für Forderungen, vom Trainer gesetzte Anwesenheit, Kassenbuch und Mitglieder (REQ-AUD-01) | `logPenaltyChange()`, `logAttendanceChange()`, `logTransaction()`, `logMemberChange()`, `listAuditLog()`, `AUDIT_ACTION_LABEL` |
-| 4 Fachlogik | Rechte (Permissions, `permissions.ts`) | Rechte-Tabelle je Rolle, Kader, Zusage für andere, letzter Trainer, Team-Code, Testkonten; unit-getestet | `can()`, `SQUAD_ROLES`, `mayRespondFor()`, `roleChangeProblem()`, `generateJoinCode()`, `normalizeJoinCode()`, `isTestAccountEmail()` |
+| 4 Fachlogik | Rechte (Permissions, `permissions.ts`) | Rechte-Tabelle je Rolle, Kader, Zusage für andere, letzter Trainer, Team-Code, Testkonten; unit-getestet | `can()`, `SQUAD_ROLES`, `mayRespondFor()`, `mayViewRatingsOf()`, `roleChangeProblem()`, `generateJoinCode()`, `normalizeJoinCode()`, `isTestAccountEmail()` |
 | 4 Fachlogik | Regelverwaltung (Penalties, `penalties.ts`) | Regeln des TSVK-Strafenkatalogs ohne Datenbank: welche Strafe greift, Fälligkeit, offener Betrag, Saldo, Zahlung und Teilzahlung, überfällig, Mahngebühr-Wochen, Kassenstand, PayPal-Link, Beteiligungsquote; unit-getestet | `absenceTriggerFor()`, `suggestRuleForAttendance()`, `manualPenaltyAmount()`, `isOutstanding()`, `openAmount()`, `balance()`, `dueDateFrom()`, `applyPayment()`, `isOverdue()`, `weeksOverdue()`, `missingLateFeeWeeks()`, `cashBalance()`, `normalizePaypalMe()`, `paypalMeUrl()`, `participationRate()`, `PLAYER_CHOICES`, `DUE_DAYS`, `LATE_FEE_CENTS_PER_WEEK` |
 | 4 Fachlogik | Spielplan-Import (Ics, `ics.ts`) | Kalenderdatei (.ics) in Termine umwandeln; unit-getestet | `parseIcs()` |
+| 4 Fachlogik | Statistik-Regeln (Statistics, `statistics.ts`) | wann bewertet werden darf, Schnitt und Trend, Top-Strafen, Kassenverlauf je Tag (Berliner Zeit); unit-getestet | `ratingProblem()`, `ratingSummary()`, `topPenalties()`, `centsFromPaymentNote()`, `dayKey()`, `cashHistory()`, `RATING_MIN`, `RATING_MAX`, `RATING_NOTE_MAX` |
 | 4 Fachlogik | Erinnerungs-Empfänger (Reminders, `reminders.ts`) | wer für einen Termin eine Erinnerungs-Mail bekommt: eigene Adresse und Stellvertreter, ohne abgeschaltete, gelöschte und Testkonten, je Adresse nur eine Mail; unit-getestet | `reminderMails()` |
 | 5 Datenzugriff | Datenbankzugriff (Prisma Client) | Lesen, Schreiben, Transaktionen | generiert aus `prisma/schema.prisma` |
