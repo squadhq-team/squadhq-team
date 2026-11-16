@@ -1,6 +1,6 @@
 # Datenmodell: ER-Diagramm
 
-> Stand Sprint „Features & Design“, 12.11.2026 (Teams mit Team-Code, fünf Rollen, Termine mit Typ, Kasse mit Mahngebühr, Beiträgen und Kassenbuch, Neuigkeiten, Chat, Push), entspricht exakt `prisma/schema.prisma`. PK = Primärschlüssel, FK = Fremdschlüssel, UK = eindeutig, „optional“ = darf leer sein (`?` im Schema).
+> Stand 16.11.2026 (Teams mit Team-Code, fünf Rollen, Termine mit Typ, Kasse mit Mahngebühr, Beiträgen und Kassenbuch, Neuigkeiten, Chat, Push, Leistungsbewertung #65), entspricht exakt `prisma/schema.prisma`. PK = Primärschlüssel, FK = Fremdschlüssel, UK = eindeutig, „optional“ = darf leer sein (`?` im Schema).
 
 ## Übersicht
 
@@ -22,11 +22,11 @@ erDiagram
   USER |o--o{ AUDIT_LOG : "Akteur"
 ```
 
-Die Übersicht zeigt die acht Kerntabellen mit denselben Beziehungen wie die Übersicht des [Klassendiagramms](klassendiagramm.md); Namen siehe [Namensliste](namensliste.md). Neuigkeiten, Umfragen, Chat und Push-Abos sowie die Team-Zuordnung aller Tabellen stehen in der Detailansicht.
+Die Übersicht zeigt die acht Kerntabellen mit denselben Beziehungen wie die Übersicht des [Klassendiagramms](klassendiagramm.md); Namen siehe [Namensliste](namensliste.md). Leistungsbewertungen, Neuigkeiten, Umfragen, Chat und Push-Abos sowie die Team-Zuordnung aller Tabellen stehen in der Detailansicht.
 
 ## Detailansicht
 
-Alle 15 Tabellen mit Spalten, Schlüsseln und Beziehungen.
+Alle 16 Tabellen mit Spalten, Schlüsseln und Beziehungen.
 
 ```mermaid
 erDiagram
@@ -39,6 +39,7 @@ erDiagram
   TEAM ||--o{ ANNOUNCEMENT : "Ankündigungen"
   TEAM ||--o{ POLL : "Umfragen"
   TEAM ||--o{ CHAT_MESSAGE : "Chat"
+  TEAM ||--o{ PLAYER_RATING : "Bewertungen"
   USER |o--o{ USER : "Stellvertretung"
   USER ||--o{ ATTENDANCE : "meldet"
   TRAINING_SESSION ||--o{ ATTENDANCE : "hat"
@@ -61,6 +62,9 @@ erDiagram
   USER ||--o{ POLL_VOTE : "stimmt ab"
   USER ||--o{ CHAT_MESSAGE : "schreibt im Chat"
   USER ||--o{ PUSH_SUBSCRIPTION : "Geräte"
+  TRAINING_SESSION ||--o{ PLAYER_RATING : "Leistung"
+  USER ||--o{ PLAYER_RATING : "wird bewertet"
+  USER ||--o{ PLAYER_RATING : "bewertet"
 
   TEAM {
     string id PK
@@ -169,6 +173,7 @@ erDiagram
     enum newStatus "optional, PenaltyStatus"
     enum oldAttendance "optional, AttendanceStatus"
     enum newAttendance "optional, AttendanceStatus"
+    int amountCents "optional, gebuchter Betrag bei Zahlungen"
     string note "optional"
     datetime createdAt
   }
@@ -218,6 +223,17 @@ erDiagram
     string auth
     datetime createdAt
   }
+  PLAYER_RATING {
+    string id PK
+    string teamId FK
+    string sessionId FK "UK zusammen mit playerId"
+    string playerId FK "UK zusammen mit sessionId"
+    string raterId FK "Trainer oder Betreuer"
+    int stars "1 bis 5 (CHECK)"
+    string note "optional, höchstens 500 Zeichen"
+    datetime createdAt
+    datetime updatedAt
+  }
 ```
 
 ## Entscheidungen im Datenmodell
@@ -245,6 +261,9 @@ erDiagram
 | Zahlungen ohne eigene Tabelle: `paidCents` + `method` an der Forderung, jede Zahlung als Protokolleintrag mit Betrag | reicht für bar, PayPal und Teilzahlung (MVP-5), jede Buchung bleibt nachvollziehbar |
 | Passwörter nur bei Supabase Auth, `User.authId` verknüpft das Konto (ohne Fremdschlüssel, weil `auth.users` in einem anderen Schema liegt) | Registrierung, Passwort vergessen, sichere Sitzungen ohne eigene Passwort-Speicherung; im Demo-Team haben nur die drei Testkonten ein Konto |
 | Row Level Security auf allen Tabellen, ohne Freigabe-Regeln (`prisma/zugriffsschutz.ts`) | Tabellen sind nicht über die REST-Schnittstelle von Supabase erreichbar; Prisma als Eigentümer ist nicht betroffen |
+| `PlayerRating`: eine Bewertung je Training und Spieler (`@@unique`), 1–5 Sterne per CHECK `player_rating_sterne`, Notiz optional | Trainer bewertet nach dem Training (#65); erneutes Bewerten überschreibt; Sterne außerhalb 1–5 lehnt die Datenbank auch am Service vorbei ab |
+| Sichtbarkeit der Bewertungen im RatingService (`mayViewRatingsOf`): Trainer/Betreuer alle, Spieler nur die eigenen, Stellvertreter die seines Mitglieds | Spieler soll sehen, woran er arbeiten kann, aber nicht die Bewertungen der anderen (Team 16.11.); RLS sperrt zusätzlich die REST-Schnittstelle |
+| `AuditLog.amountCents` bei Zahlungen | Kassenverlauf mit Datum je Zahlung (#65); ältere Zahlungen ohne Feld liest die Statistik aus dem Protokolltext |
 | eine `Attendance` je Mitglied und Termin (`@@unique`) | 1-Klick-Rückmeldung überschreibt die alte |
 | `note` optional | Absage ohne Rechtfertigungsdruck (Interview Spieler) |
 | `importUid` eindeutig je Team | erneuter Spielplan-Import aktualisiert Termine statt sie doppelt anzulegen |

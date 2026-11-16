@@ -1,6 +1,6 @@
 # Detailentwurf: Klassendiagramm
 
-> Stand Sprint „Features & Design“, 12.11.2026. **Next.js kennt hier keine Klassen:** Der Code besteht aus Prisma-Modellen (reine Daten) und TypeScript-Modulen (Dateien mit Funktionen). Das Diagramm unterscheidet beides deshalb ausdrücklich:
+> Stand 16.11.2026 (mit Statistik und Leistungsbewertung #65). **Next.js kennt hier keine Klassen:** Der Code besteht aus Prisma-Modellen (reine Daten) und TypeScript-Modulen (Dateien mit Funktionen). Das Diagramm unterscheidet beides deshalb ausdrücklich:
 >
 > - `«Prisma-Modell»` = Modell in `prisma/schema.prisma`, Attribute = Spalten, keine Methoden. Fremdschlüssel (z. B. `playerId`) sind als Assoziationen gezeichnet, nicht als Attribute.
 > - `«Modul»` = TypeScript-Datei; jede Operation ist eine exportierte Funktion. Der Klassenname ist der Codename aus dem [Komponentendiagramm](komponenten.md) (siehe [Namensliste](namensliste.md)). Parameter in geschweiften Klammern werden als ein Objekt übergeben.
@@ -56,7 +56,7 @@ Die Übersicht zeigt die acht Kern-Modelle mit denselben Beziehungen wie die Üb
 
 ## Detailansicht Datenmodell
 
-Alle 15 Prisma-Modelle mit Attributen, Aufzählungstypen und Beziehungen (dieselben wie im ER-Modell).
+Alle 16 Prisma-Modelle mit Attributen, Aufzählungstypen und Beziehungen (dieselben wie im ER-Modell).
 
 ```mermaid
 classDiagram
@@ -156,6 +156,7 @@ classDiagram
     +PenaltyStatus? newStatus
     +AttendanceStatus? oldAttendance
     +AttendanceStatus? newAttendance
+    +Int? amountCents
     +String? note
     +DateTime createdAt
   }
@@ -200,6 +201,14 @@ classDiagram
     +String p256dh
     +String auth
     +DateTime createdAt
+  }
+  class PlayerRating {
+    <<Prisma-Modell>>
+    +String id
+    +Int stars
+    +String? note
+    +DateTime createdAt
+    +DateTime updatedAt
   }
 
   class Role {
@@ -274,6 +283,7 @@ classDiagram
   Team "1" -- "0..*" Announcement : Ankündigungen
   Team "1" -- "0..*" Poll : Umfragen
   Team "1" -- "0..*" ChatMessage : Chat
+  Team "1" -- "0..*" PlayerRating : Bewertungen
   User "0..1" -- "0..*" User : Stellvertretung
   User "1" -- "0..*" Attendance : meldet
   TrainingSession "1" *-- "0..*" Attendance : hat
@@ -296,6 +306,9 @@ classDiagram
   User "1" -- "0..*" PollVote : stimmt ab
   User "1" -- "0..*" ChatMessage : schreibt im Chat
   User "1" *-- "0..*" PushSubscription : Geräte
+  TrainingSession "1" *-- "0..*" PlayerRating : Leistung
+  User "1" -- "0..*" PlayerRating : wird bewertet
+  User "1" -- "0..*" PlayerRating : bewertet
 ```
 
 ## Detailansicht Module
@@ -331,6 +344,7 @@ classDiagram
     +cancelSessionAction(formData) void
     +setAttendanceAction(formData) void
     +setLineupAction(formData) void
+    +rateAction(formData) void
     +approveAction(formData) void
     +discardAction(formData) void
     +importCalendarAction(formData) void
@@ -460,7 +474,7 @@ classDiagram
   class AuditService {
     <<Modul>>
     +AUDIT_ACTION_LABEL
-    +logPenaltyChange(tx, teamId, entryId, actorId, action, oldStatus, newStatus, note?) void
+    +logPenaltyChange(tx, teamId, entryId, actorId, action, oldStatus, newStatus, amountCents?, note?) void
     +logAttendanceChange(tx, teamId, attendanceId, actorId, oldAttendance, newAttendance) void
     +logTransaction(tx, teamId, transactionId, actorId, action, note?) void
     +logMemberChange(tx, teamId, subjectId, actorId, action, note?) void
@@ -483,6 +497,16 @@ classDiagram
   class StatsService {
     <<Modul>>
     +getParticipation(teamId, type?) Participation[]
+    +getTopPenalties(teamId, limit) TopPenalty[]
+    +getCashHistory(teamId) CashHistory
+  }
+  class RatingService {
+    <<Modul>>
+    +ratePlayer(teamId, rater, sessionId, playerId, stars, note?) PlayerRating
+    +removeRating(teamId, rater, sessionId, playerId) void
+    +listVisibleRatingsForSession(viewer, sessionId) PlayerRating[]
+    +getRatingOverview(viewer) RatingOverview
+    +getPlayerRatings(viewer, playerId) PlayerRatings
   }
   class PushService {
     <<Modul>>
@@ -515,6 +539,7 @@ classDiagram
     +can(role, permission) Boolean
     +SQUAD_ROLES Role[]
     +mayRespondFor(actor, member) Boolean
+    +mayViewRatingsOf(viewer, member) Boolean
     +roleChangeProblem(target, newRole, trainerCount) String?
     +TEST_ACCOUNT_DOMAIN = "@squadhq.test"
     +isTestAccountEmail(email) Boolean
@@ -548,6 +573,19 @@ classDiagram
     <<Modul>>
     +parseIcs(text, toBerlin) ImportedEvent[]
   }
+  class Statistics {
+    <<Modul>>
+    +RATING_MIN = 1
+    +RATING_MAX = 5
+    +RATING_NOTE_MAX = 500
+    +RATABLE_EVENT_TYPES EventType[]
+    +ratingProblem(params, now) String?
+    +ratingSummary(ratings) RatingSummary
+    +topPenalties(entries, limit) TopPenalty[]
+    +centsFromPaymentNote(note) Int?
+    +dayKey(date) String
+    +cashHistory(movements, endBalanceCents) CashHistory
+  }
 
   ServerActions ..> Auth : nutzt
   ServerActions ..> Registration : nutzt
@@ -557,6 +595,7 @@ classDiagram
   TerminActions ..> AttendanceService : nutzt
   TerminActions ..> PenaltyEngine : nutzt
   TerminActions ..> PushService : nutzt
+  TerminActions ..> RatingService : nutzt
   KasseActions ..> Auth : nutzt
   KasseActions ..> PenaltyEngine : nutzt
   KasseActions ..> PaymentService : nutzt
@@ -586,6 +625,11 @@ classDiagram
   TeamService ..> Permissions : nutzt
   StatsService ..> TeamService : nutzt
   StatsService ..> Penalties : nutzt
+  StatsService ..> Statistics : nutzt
+  RatingService ..> AttendanceService : nutzt
+  RatingService ..> TeamService : nutzt
+  RatingService ..> Permissions : nutzt
+  RatingService ..> Statistics : nutzt
   PushService ..> Permissions : nutzt
   ReminderService ..> PushService : nutzt
   ReminderService ..> MailService : nutzt
@@ -596,12 +640,12 @@ classDiagram
 
 Hinweise zum Diagramm:
 
-- Dateien der Module: `ServerActions` = `src/app/actions.ts` (Anmeldung, Team gründen/beitreten, Profil, Push), `TerminActions` = `src/app/termine/actions.ts`, `KasseActions` = `src/app/kasse/actions.ts`, `TeamActions` = `src/app/team/actions.ts`, `NeuigkeitenActions` = `src/app/neuigkeiten/actions.ts`; alle fünf bilden zusammen die Komponente „Eingaben verarbeiten“. `Auth` = `src/lib/auth.ts`, `Registration` = `src/lib/registration.ts`, Services = `src/services/…`, `Permissions` = `src/domain/permissions.ts` (Rechte-Tabelle, REQ-SEC-01), `Penalties` = `src/domain/penalties.ts` (Regelverwaltung), `Ics` = `src/domain/ics.ts` (Spielplan-Import), `Reminders` = `src/domain/reminders.ts` (wer eine Erinnerungs-Mail bekommt); die vier Fachlogik-Module sind reine Funktionen ohne Datenbank. Den täglichen Erinnerungs-Job `src/app/api/cron/erinnerungen/route.ts` ruft Vercel Cron auf; er nutzt nur `ReminderService`.
-- Welche Tabellen die Module schreiben: TeamService → `Team`, `User`, `AuditLog`; AttendanceService → `TrainingSession`, `Attendance`, `AuditLog`; PenaltyEngine → `PenaltyEntry`, `PenaltyRule`, `AuditLog`; PaymentService → `PenaltyEntry`, `CashTransaction`, `Team.paypalMe`, `AuditLog`; NewsService → `Announcement`, `Poll`, `PollOption`, `PollVote`, `ChatMessage`; PushService → `PushSubscription`; ReminderService und MailService schreiben nichts (nur lesen und senden); Registration → `User`; AuditService → `AuditLog` (nur anlegen).
+- Dateien der Module: `ServerActions` = `src/app/actions.ts` (Anmeldung, Team gründen/beitreten, Profil, Push), `TerminActions` = `src/app/termine/actions.ts`, `KasseActions` = `src/app/kasse/actions.ts`, `TeamActions` = `src/app/team/actions.ts`, `NeuigkeitenActions` = `src/app/neuigkeiten/actions.ts`; alle fünf bilden zusammen die Komponente „Eingaben verarbeiten“. `Auth` = `src/lib/auth.ts`, `Registration` = `src/lib/registration.ts`, Services = `src/services/…`, `Permissions` = `src/domain/permissions.ts` (Rechte-Tabelle, REQ-SEC-01), `Penalties` = `src/domain/penalties.ts` (Regelverwaltung), `Ics` = `src/domain/ics.ts` (Spielplan-Import), `Reminders` = `src/domain/reminders.ts` (wer eine Erinnerungs-Mail bekommt), `Statistics` = `src/domain/statistics.ts` (Statistik-Regeln); die fünf Fachlogik-Module sind reine Funktionen ohne Datenbank. Den täglichen Erinnerungs-Job `src/app/api/cron/erinnerungen/route.ts` ruft Vercel Cron auf; er nutzt nur `ReminderService`.
+- Welche Tabellen die Module schreiben: TeamService → `Team`, `User`, `AuditLog`; AttendanceService → `TrainingSession`, `Attendance`, `AuditLog`; PenaltyEngine → `PenaltyEntry`, `PenaltyRule`, `AuditLog`; PaymentService → `PenaltyEntry`, `CashTransaction`, `Team.paypalMe`, `AuditLog`; NewsService → `Announcement`, `Poll`, `PollOption`, `PollVote`, `ChatMessage`; PushService → `PushSubscription`; RatingService → `PlayerRating`; StatsService schreibt nichts; ReminderService und MailService schreiben nichts (nur lesen und senden); Registration → `User`; AuditService → `AuditLog` (nur anlegen).
 - Die Abhängigkeiten (gestrichelte Pfeile) zeigen nur nach unten, genau wie im Komponentendiagramm: Server Actions → Auth/Services → Fachlogik. Innerhalb der Services gibt es keine Kreise. Die Seiten (Präsentation) sind keine Module mit Operationen und stehen deshalb nur im Komponentendiagramm.
-- Ergebnistypen: `Member` = `User` mit Team (angemeldet und in einem Team). `AttendanceList` = Termin und je Mitglied des Kaders seine Rückmeldung (oder keine). `PlayerAccount` = Saldo in Cent und sichtbare Forderungen. `TeamCash` = offene (mit überfällig) und bezahlte Forderungen, Summen, Salden je Mitglied, Kassenbuch und Kassenstand. `PaymentResult` = neuer Status, bezahlter und gebuchter Betrag. `CashBalance` = Einnahmen, Ausgaben, Kassenstand. `ImportResult` = angelegt, aktualisiert, übersprungen. `RegistrationResult` = neuer Nutzer und ob Supabase noch eine E-Mail-Bestätigung verlangt. `ReminderResult` = Zahl der Push-Empfänger, verschickte und fehlgeschlagene Mails. `ReminderMail` = Adresse, Anrede, ob die Person selbst fehlt und für welche vertretenen Mitglieder. `Mailer` = offene Verbindung zum Mailserver (`send`, `close`).
+- Ergebnistypen: `Member` = `User` mit Team (angemeldet und in einem Team). `AttendanceList` = Termin und je Mitglied des Kaders seine Rückmeldung (oder keine). `PlayerAccount` = Saldo in Cent und sichtbare Forderungen. `TeamCash` = offene (mit überfällig) und bezahlte Forderungen, Summen, Salden je Mitglied, Kassenbuch und Kassenstand. `PaymentResult` = neuer Status, bezahlter und gebuchter Betrag. `CashBalance` = Einnahmen, Ausgaben, Kassenstand. `ImportResult` = angelegt, aktualisiert, übersprungen. `RegistrationResult` = neuer Nutzer und ob Supabase noch eine E-Mail-Bestätigung verlangt. `ReminderResult` = Zahl der Push-Empfänger, verschickte und fehlgeschlagene Mails. `ReminderMail` = Adresse, Anrede, ob die Person selbst fehlt und für welche vertretenen Mitglieder. `Mailer` = offene Verbindung zum Mailserver (`send`, `close`). `RatingSummary` = Anzahl, Schnitt, Schnitt der letzten 3, Trend (steigend, fallend, gleichbleibend). `RatingOverview` = ob alle sichtbar sind und je sichtbarem Spieler seine `RatingSummary`. `PlayerRatings` = Spieler, alle seine Bewertungen mit Training und Bewerter, `RatingSummary`. `TopPenalty` = Katalogposition, Anzahl, Summe. `CashHistory` = Kassenstand am Anfang und nach jedem Tag mit Bewegung.
 - `User.passwordHash` ist seit dem Umstieg auf Supabase Auth (10.11.2026) veraltet und wird nicht mehr benutzt.
-- Komposition (gefüllte Raute): Wird ein Termin gelöscht, werden seine Rückmeldungen mitgelöscht; ebenso Antworten und Stimmen einer Umfrage und die Push-Abos eines Mitglieds (`onDelete: Cascade` im Schema).
+- Komposition (gefüllte Raute): Wird ein Termin gelöscht, werden seine Rückmeldungen mitgelöscht; ebenso seine Leistungsbewertungen, Antworten und Stimmen einer Umfrage und die Push-Abos eines Mitglieds (`onDelete: Cascade` im Schema).
 - `PenaltyEntry`, `CashTransaction` und `AuditLog` sind bewusst nur assoziiert, nicht komponiert: Das Protokoll ist manipulationssicher (REQ-AUD-01). Eine Forderung oder Buchung mit Protokoll lässt sich nicht löschen (`onDelete: Restrict`), nur stornieren; Protokolleinträge selbst lehnt die Datenbank beim Ändern und Löschen ab (Trigger, `prisma/auditLogSchutz.ts`).
 - Ein `AuditLog`-Eintrag betrifft genau eine Sache: eine Forderung (`Verlauf`), eine vom Trainer gesetzte Anwesenheit (`Anwesenheitsverlauf`), eine Kassenbuch-Buchung (`Buchungsverlauf`) **oder** ein Mitglied (`betrifft`, z. B. Rolle geändert). Deshalb `0..1` auf allen vier Seiten; die Datenbank erzwingt „genau eins“ per CHECK-Bedingung. Normale Spieler-Rückmeldungen werden nicht protokolliert.
 - `1..*` bei `Verlauf` und `Buchungsverlauf`: Die Datenbank erlaubt auch 0 Einträge, aber die Services legen jede Forderung und jede Buchung zusammen mit ihrem ersten Protokolleintrag in derselben Transaktion an.

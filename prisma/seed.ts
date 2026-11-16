@@ -25,6 +25,7 @@ async function main() {
   // Nur auf leerer Datenbank (npm run db:reset): Das Audit-Log ist gegen Löschen geschützt (prisma/auditLogSchutz.ts),
   // auf einer Datenbank mit Protokolleinträgen bricht der Seed deshalb hier ab.
   await prisma.auditLog.deleteMany();
+  await prisma.playerRating.deleteMany();
   await prisma.penaltyEntry.deleteMany({ where: { parentId: { not: null } } });
   await prisma.penaltyEntry.deleteMany();
   await prisma.cashTransaction.deleteMany();
@@ -238,6 +239,7 @@ async function main() {
         action: "BEZAHLT",
         oldStatus: "OPEN",
         newStatus: "PAID_PAYPAL",
+        amountCents: 2000,
         note: "20,00 € per PayPal",
         createdAt: at(-10, 18),
       },
@@ -290,9 +292,35 @@ async function main() {
         action: "BEZAHLT",
         oldStatus: "OPEN",
         newStatus: "PAID_CASH",
+        amountCents: 2000,
         note: "20,00 € bar",
         createdAt: at(-5, 21),
       },
+    ],
+  });
+
+  // Leistungsbewertung nach den vergangenen Trainings (#65); Paul (Testkonto Spieler) sieht seine eigenen mit Notiz
+  const rate = (sessionId: string, playerId: string, stars: number, note?: string) => ({
+    teamId,
+    sessionId,
+    playerId,
+    raterId: trainer.id,
+    stars,
+    note: note ?? null,
+  });
+  await prisma.playerRating.createMany({
+    data: [
+      rate(twoWeeksAgo.id, ben.id, 4),
+      rate(twoWeeksAgo.id, can.id, 5, "Starkes Passspiel, gute Kommunikation"),
+      rate(twoWeeksAgo.id, finn.id, 3),
+      rate(twoWeeksAgo.id, leon.id, 3, "Mehr Tempo im Umschaltspiel"),
+      rate(twoWeeksAgo.id, luca.id, 4),
+      rate(twoWeeksAgo.id, noah.id, 2, "Konzentration in den Abschlussübungen"),
+      rate(lastWeek.id, ben.id, 4),
+      rate(lastWeek.id, can.id, 4),
+      rate(lastWeek.id, luca.id, 5, "Sehr engagiert, gute Zweikämpfe"),
+      rate(lastWeek.id, paul.id, 3, "Laufwege im Abschluss verbessern, sonst solide"),
+      rate(lastWeek.id, tim.id, 3, "Schwacher Fuß: Flanken mit links üben"),
     ],
   });
 

@@ -64,6 +64,18 @@ Getestet in `tests/payments.test.ts` und `tests/p4Flow.db.test.ts`.
 **When** der Trainer die Anwesenheit eines Spielers setzt oder ändert
 **Then** entsteht ein Protokolleintrag mit altem und neuem Status, Trainer und Zeitstempel; klickt er denselben Status erneut, entsteht kein weiterer Eintrag. Normale Rückmeldungen der Spieler (Dabei/Fehle/Unsicher) werden nicht protokolliert (getestet in `tests/p4Flow.db.test.ts`)
 
+## #65 Statistiken und Leistungsbewertung (seit 16.11.2026)
+
+**AK10 Given** ein Training hat begonnen und ein Spieler ist als „Da“ bestätigt
+**When** der Trainer oder Betreuer ihm 1 bis 5 Sterne und optional eine Notiz gibt
+**Then** ist die Bewertung gespeichert; erneutes Bewerten überschreibt sie. Spieler, Kassenwart und Elternteil können nicht bewerten; Abwesende, Spiele, abgesagte und noch nicht begonnene Trainings ebenfalls nicht; Sterne außerhalb 1–5 lehnt auch die Datenbank ab
+
+**AK11 Given** Bewertungen mehrerer Spieler
+**Then** sieht der Trainer alle, ein Spieler nur seine eigenen mit Notiz (ein Elternteil die seines Mitglieds), auch nicht über die direkte Adresse `/team/statistik/[id]` eines anderen Spielers
+
+**AK12 Given** Zahlungen, Einnahmen und Ausgaben
+**Then** endet der Kassenverlauf in der Statistik beim selben Kassenstand wie die Teamkasse (getestet in `tests/statistics.test.ts` und `tests/statistics.db.test.ts`)
+
 ## Teststrategie
 - Unit-Tests für PenaltyEngine (Regelprüfung, Beträge)
 - Unit-Test des Strafenkatalogs gegen den TSVK-Katalog 2026/27 (REQ-PEN-01, `tests/strafenkatalog.test.ts`)
@@ -90,6 +102,8 @@ Lauf am 12.11.2026 gegen eine lokale, leere PostgreSQL-16-Testdatenbank: `RUN_DB
 | **Summe** | | **112** | **112 bestanden** |
 
 Seit dem Ausbau der Demo-Anmeldung (12.11.2026) entfallen die zwei Tests der signierten Demo-Cookies (vorher 105); mit der Erinnerung per E-Mail kamen 9 Tests dazu. Zusätzlich wurden alle Seiten für Trainer, Kassenwart und Spieler in der Handy-Ansicht (iPhone 13, Playwright) auf einem lokalen Produktions-Build aufgerufen: keine Fehlerseite, keine Fehler in der Browser-Konsole.
+
+**Nachtrag 16.11.2026 (#65):** `RUN_DB_TESTS=1 npm test` **139 von 139 bestanden**, davon neu `tests/statistics.test.ts` (21 Unit-Tests: Regeln zur Bewertung, Schnitt und Trend, Sichtbarkeit, Top-Strafen, Kassenverlauf) und `tests/statistics.db.test.ts` (6 Komponententests: AK10–AK12).
 
 ## Testergebnisse
 

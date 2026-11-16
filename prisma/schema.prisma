@@ -1,4 +1,4 @@
-// Datenmodell SquadHQ (Stand Sprint Features & Design, 12.11.2026)
+// Datenmodell SquadHQ (Stand 16.11.2026: Statistik und Leistungsbewertung #65)
 // Quelle der Status-Werte: Feedback-Matrix (docs/interviews/feedback-matrix.md)
 // Jedes Team ist von anderen Teams getrennt: alle Fachdaten hängen über teamId an genau einem Team.
 
@@ -104,6 +104,7 @@ model Team {
   polls         Poll[]
   messages      ChatMessage[]
   auditLog      AuditLog[]
+  ratings       PlayerRating[]
 }
 
 model User {
@@ -144,6 +145,8 @@ model User {
   votes            PollVote[]
   messages         ChatMessage[]
   pushSubs         PushSubscription[]
+  ratings          PlayerRating[]     @relation("RatedPlayer")
+  givenRatings     PlayerRating[]     @relation("Rater")
 }
 
 /// Termin (Training, Spiel, Turnier, Feier, Sonstiges). Name aus P3 beibehalten, damit Diagramme und Code gleich heißen.
@@ -173,6 +176,7 @@ model TrainingSession {
   createdBy   User           @relation(fields: [createdById], references: [id])
   attendances Attendance[]
   penalties   PenaltyEntry[]
+  ratings     PlayerRating[]
 
   @@unique([teamId, importUid])
   @@index([teamId, startsAt])
@@ -288,6 +292,8 @@ model AuditLog {
   newStatus     PenaltyStatus?
   oldAttendance AttendanceStatus?
   newAttendance AttendanceStatus?
+  /// Gebuchter Betrag in Cent bei Zahlungen (BEZAHLT, TEILZAHLUNG), Grundlage des Kassenverlaufs (#65)
+  amountCents   Int?
   note          String?
   createdAt     DateTime          @default(now())
 
@@ -301,6 +307,31 @@ model AuditLog {
   actor       User?            @relation("AuditActor", fields: [actorId], references: [id])
 
   @@index([teamId, createdAt])
+}
+
+/// Leistungsbewertung nach einem Training (#65): Trainer oder Betreuer gibt jedem anwesenden Spieler 1–5 Sterne
+/// und optional eine Notiz. Je Training und Spieler genau eine Bewertung (erneutes Bewerten überschreibt sie).
+/// Sichtbar für Trainer und Betreuer sowie für den bewerteten Spieler selbst (und seinen Stellvertreter), nie für andere Spieler.
+model PlayerRating {
+  id        String   @id @default(cuid())
+  teamId    String
+  sessionId String
+  playerId  String
+  /// wer zuletzt bewertet hat
+  raterId   String
+  /// 1 bis 5 (zusätzlich per CHECK in der Datenbank, siehe prisma/zugriffsschutz.ts)
+  stars     Int
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  team    Team            @relation(fields: [teamId], references: [id])
+  session TrainingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  player  User            @relation("RatedPlayer", fields: [playerId], references: [id])
+  rater   User            @relation("Rater", fields: [raterId], references: [id])
+
+  @@unique([sessionId, playerId])
+  @@index([teamId, playerId])
 }
 
 /// Neuigkeiten und Ankündigungen an das ganze Team (#49)

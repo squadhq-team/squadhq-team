@@ -43,6 +43,13 @@ Die Liste beschreibt, wohin sich SquadHQ entwickeln soll. Was nicht in den MVPs 
 - **Strafenkatalog:** feste Regeln mit automatischen oder manuellen Strafen, z. B. für Zuspätkommen oder unentschuldigtes Fehlen. *(MVP-3: automatischer Vorschlag Pos. 8)*
 - **Beitragsverwaltung:** teaminterne Beiträge und offene Salden nachverfolgen. *(MVP: offene Salden aus Strafen)*
 
+### 5. Statistiken & Leistungsbewertung *(neu 16.11.2026, Wunsch aus dem Team, Issue #65)*
+- **Trainingsbeteiligung pro Spieler:** Quote aus Zusagen und bestätigter Anwesenheit, wahlweise Training, Spiele oder alle Termine; Termine, bei denen jemand verletzt war, zählen nicht mit.
+- **Leistungsbewertung nach dem Training:** Der Trainer (oder Betreuer) gibt jedem Spieler, der beim Training dabei war, 1 bis 5 Sterne und optional eine Notiz, z. B. woran er arbeiten soll. Pro Spieler gibt es Schnitt, Trend der letzten Trainings und einen Verlauf als Diagramm.
+  - **Wer sieht was:** Trainer und Betreuer sehen alle Bewertungen. Der bewertete Spieler sieht seine **eigenen** Bewertungen mit Notiz, damit er weiß, wo er sich verbessern kann (ebenso ein eingetragener Stellvertreter bzw. Elternteil). Andere Spieler sehen fremde Bewertungen nicht.
+- **Top-Strafen:** welche Positionen aus dem Strafenkatalog am häufigsten vergeben wurden (ohne Namen).
+- **Kassenverlauf:** Kassenstand als Diagramm über die Zeit, für Trainer und Kassenwart.
+
 ## Abweichungen zur Priorisierung aus P2
 
 | Thema | P2 (MoSCoW) | Jetzt |
@@ -51,6 +58,7 @@ Die Liste beschreibt, wohin sich SquadHQ entwickeln soll. Was nicht in den MVPs 
 | Team-Chat | Won't | im Gesamtumfang, nicht im MVP |
 | Push-Erinnerungen | Should | im Gesamtumfang, nicht im MVP |
 | Rolle Betreuer, Eltern-Accounts | nicht geplant | im Gesamtumfang, nicht im MVP |
+| Statistiken, Leistungsbewertung | nicht geplant | im Gesamtumfang seit 16.11.2026, nicht im MVP |
 
 ## Umsetzungsstand 12.11.2026 (Sprint „Features & Design“)
 
@@ -60,3 +68,8 @@ Für die vorgezogenen Nutzertests ist der Gesamtumfang umgesetzt (Details und Te
 - **Kommunikation:** Team-Chat, Ankündigungen (anheftbar), Umfragen mit Einfach- oder Mehrfachauswahl und Enddatum.
 - **Teamverwaltung:** mehrere Teams mit Team-Code, Mitgliederübersicht mit Position und Rückennummer, Rollen Trainer, Betreuer, Kassenwart, Spieler, Elternteil/Stellvertreter, Mitglieder ohne eigenes Konto, Konto löschen.
 - **Teamkasse:** manuelle Strafen aus dem Katalog, Katalog pflegen, automatische Mahngebühr, Beiträge, Einnahmen und Ausgaben mit Kassenstand, PayPal.me-Link, Beteiligungsstatistik.
+
+## Umsetzungsstand 16.11.2026 (Statistiken & Leistungsbewertung, #65)
+
+- Statistik-Seite unter **Team → Statistik** mit den Reitern Beteiligung, Leistung, Top-Strafen und Kassenverlauf (nur Trainer und Kassenwart).
+- Bewertung im Termin: Nach Beginn eines Trainings erscheint für Trainer und Betreuer „Leistung bewerten“ mit Sternen und Notiz für alle, die als „Da“ bestätigt sind. Spieler sehen im Termin und unter **Statistik → Leistung** ihre eigenen Bewertungen mit Verlauf.

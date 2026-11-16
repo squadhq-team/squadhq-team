@@ -10,7 +10,7 @@
 | 1 Präsentation | Startseite | Seite `/start` | `src/app/start/page.tsx` |
 | 1 Präsentation | Termine | Seiten `/termine`, `/termine/neu`, `/termine/[id]`, `/termine/[id]/bearbeiten`, `/termine/import` | `src/app/termine/…` |
 | 1 Präsentation | Kasse | Seiten `/kasse`, `/kasse/strafe`, `/kasse/katalog`, `/kasse/beitrag`, `/kasse/buchung` | `src/app/kasse/…` |
-| 1 Präsentation | Team & Profil | Seiten `/team`, `/team/statistik`, `/profil` | `src/app/team/…`, `src/app/profil/page.tsx` |
+| 1 Präsentation | Team & Profil | Seiten `/team`, `/team/statistik`, `/team/statistik/[id]`, `/profil` | `src/app/team/…`, `src/app/profil/page.tsx` |
 | 1 Präsentation | Neuigkeiten & Chat | Seiten `/neuigkeiten`, `/neuigkeiten/umfrage`, `/chat` | `src/app/neuigkeiten/…`, `src/app/chat/page.tsx` |
 | 1 Präsentation | Protokoll-Ansicht | Seite `/protokoll` | `src/app/protokoll/page.tsx` |
 | 1 Präsentation | Erinnerungs-Job | Route `/api/cron/erinnerungen` | `src/app/api/cron/erinnerungen/route.ts`, Zeitplan in `vercel.json` |
@@ -23,12 +23,14 @@
 | 3 Services | Teamkasse & Zahlungen | PaymentService | `src/services/paymentService.ts` |
 | 3 Services | Neuigkeiten & Chat | NewsService | `src/services/newsService.ts` |
 | 3 Services | Statistik | StatsService | `src/services/statsService.ts` |
+| 3 Services | Leistungsbewertung | RatingService | `src/services/ratingService.ts` |
 | 3 Services | Benachrichtigungen | PushService, ReminderService, MailService | `src/services/pushService.ts`, `src/services/reminderService.ts`, `src/services/mailService.ts`, Service Worker `public/sw.js` |
 | 3 Services | Protokollierung | AuditService | `src/services/auditService.ts` |
 | 4 Fachlogik | Rechte | Permissions | `src/domain/permissions.ts` |
 | 4 Fachlogik | Regelverwaltung | Penalties | `src/domain/penalties.ts` |
 | 4 Fachlogik | Spielplan-Import | Ics | `src/domain/ics.ts` |
 | 4 Fachlogik | Erinnerungs-Empfänger | Reminders | `src/domain/reminders.ts` |
+| 4 Fachlogik | Statistik-Regeln | Statistics | `src/domain/statistics.ts` |
 | 5 Datenzugriff | Datenbankzugriff | Prisma Client | `src/lib/db.ts` |
 | – | Datenbank | PostgreSQL (Supabase) | `prisma/schema.prisma` |
 | – | Supabase Auth (extern) | Supabase Auth | `src/lib/supabase.ts`, `src/middleware.ts` |
@@ -63,8 +65,9 @@ Die fünf Schichten sind dieselben wie auf der Folie „Schichtenarchitektur“ 
 | Umfrage, Antwortmöglichkeit, Stimme | `Poll`, `PollOption`, `PollVote` | `POLL`, `POLL_OPTION`, `POLL_VOTE` |
 | Chat-Nachricht | `ChatMessage` | `CHAT_MESSAGE` |
 | Push-Abo eines Geräts | `PushSubscription` | `PUSH_SUBSCRIPTION` |
+| Leistungsbewertung nach dem Training (1–5 Sterne, Notiz) | `PlayerRating` | `PLAYER_RATING` |
 
-Die Tabellennamen im ER-Modell sind die Prisma-Modellnamen in Großbuchstaben mit Unterstrich. Beziehungsnamen sind in Klassendiagramm und ER-Modell gleich: *Mitglieder, plant, Katalog, Forderungen, Kassenbuch, Protokoll, Ankündigungen, Umfragen, Chat, Stellvertretung, meldet, hat, erstellt, schuldet, legt an, Grundlage, Anlass, Mahngebühr, bucht, Verlauf, Anwesenheitsverlauf, Buchungsverlauf, betrifft, Akteur, schreibt, fragt, Antworten, Stimmen, stimmt ab, schreibt im Chat, Geräte*.
+Die Tabellennamen im ER-Modell sind die Prisma-Modellnamen in Großbuchstaben mit Unterstrich. Beziehungsnamen sind in Klassendiagramm und ER-Modell gleich: *Mitglieder, plant, Katalog, Forderungen, Kassenbuch, Protokoll, Ankündigungen, Umfragen, Chat, Stellvertretung, meldet, hat, erstellt, schuldet, legt an, Grundlage, Anlass, Mahngebühr, bucht, Verlauf, Anwesenheitsverlauf, Buchungsverlauf, betrifft, Akteur, schreibt, fragt, Antworten, Stimmen, stimmt ab, schreibt im Chat, Geräte, Bewertungen, Leistung, wird bewertet, bewertet*.
 
 ## Zustände einer Strafe (Zustandsautomat, Code, Datenbank)
 

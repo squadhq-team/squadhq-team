@@ -83,6 +83,8 @@ npx prisma db push          # Schema übernehmen (z. B. Löschschutz des Audit-L
 npm run db:audit-schutz     # Audit-Log gegen Ändern und Löschen sperren (Datenbank-Trigger)
 npm run db:sync-katalog     # Strafenkatalog an prisma/strafenkatalog.ts angleichen
 ```
+**Statistik und Leistungsbewertung (#65, 16.11.2026):** neue Tabelle `PlayerRating` und neue Spalte `AuditLog.amountCents`. Vor dem Deploy gegen die Live-Datenbank `npx prisma db push` und danach `npm run db:audit-schutz` (schaltet den Zugriffsschutz für die neue Tabelle ein und legt die Prüfregel 1–5 Sterne an). Beides löscht keine Daten.
+
 **Achtung:** `npm run db:reset` löscht alle Daten, auch alle echten Teams und Mitglieder. Sobald echte Nutzer in der App sind, für Schema-Änderungen nur noch die drei Befehle oben verwenden.
 
 Ist das Audit-Log geschützt, lassen sich Protokolleinträge nicht mehr löschen. `npm run db:seed` allein bricht dann ab; `npm run db:reset` setzt die Datenbank komplett neu auf.
