@@ -9,6 +9,7 @@ import {
   balance,
   dueDateFrom,
   manualPenaltyAmount,
+  sortCatalog,
   suggestRuleForAttendance,
 } from "@/domain/penalties";
 import { SQUAD_ROLES } from "@/domain/permissions";
@@ -262,12 +263,9 @@ export function listPendingForTeam(teamId: string) {
   });
 }
 
-/** Strafenkatalog des Teams: aktive Regeln zuerst, dann nach Position. */
-export function listRules(teamId: string) {
-  return prisma.penaltyRule.findMany({
-    where: { teamId },
-    orderBy: [{ active: "desc" }, { position: { sort: "asc", nulls: "last" } }, { title: "asc" }],
-  });
+/** Strafenkatalog des Teams: aktive Regeln zuerst, dann in der Reihenfolge des Katalogs (D-04: 5A vor 6). */
+export async function listRules(teamId: string) {
+  return sortCatalog(await prisma.penaltyRule.findMany({ where: { teamId } }));
 }
 
 /** Katalog pflegen: Betrag, Titel und aktiv/inaktiv einer Regel ändern. Gilt nur für neue Strafen. */

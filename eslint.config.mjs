@@ -6,7 +6,17 @@ import { FlatCompat } from "@eslint/eslintrc";
 const compat = new FlatCompat({ baseDirectory: dirname(fileURLToPath(import.meta.url)) });
 
 const eslintConfig = [
-  { ignores: ["node_modules/**", ".next/**", ".vercel/**", "coverage/**", "next-env.d.ts"] },
+  {
+    ignores: [
+      "node_modules/**",
+      ".next/**",
+      ".vercel/**",
+      "coverage/**",
+      "next-env.d.ts",
+      "test-results/**",
+      "playwright-report/**",
+    ],
+  },
   // Next.js-Empfehlungen inkl. React-Hooks-Regeln und TypeScript
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   // Formatierung macht Prettier, ESLint prüft nur Fehler und Codequalität

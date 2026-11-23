@@ -119,9 +119,10 @@ Weitere Ordner: `prisma/` Datenmodell, Demo-Daten, Strafenkatalog und Datenbank-
 - Framework: **Vitest**, alle Tests in `tests/`, Dateiname `<thema>.test.ts`.
 - **Unit-Tests** für reine Funktionen in `src/domain` und `src/lib` (ohne Datenbank), z. B. `tests/payments.test.ts`.
 - **Datenbank-Tests** (Komponententests eines ganzen MVP-Ablaufs über die Services) heißen `<thema>.db.test.ts` und laufen nur mit `RUN_DB_TESTS=1` gegen eine Test-Datenbank, z. B. `tests/p4Flow.db.test.ts`. Nie gegen die Live-Datenbank, denn das Audit-Log ist unlöschbar.
+- **Akzeptanztests** im Browser (Playwright) liegen in `tests/e2e/` und heißen `<thema>.spec.ts`. Sie laufen mit `npm run test:e2e` gegen eine lokale Test-Datenbank (`E2E_DATABASE_URL`, Standard `squadhq_e2e`) und eine Attrappe von Supabase Auth. Jeder Test hat eine ID `AT-xx` aus dem [Testfallkatalog](testing/testfallkatalog.md).
 - Testnamen auf Deutsch und mit Bezug: `describe("applyPayment (REQ-PEN-04)")`, `it("AK4: 1 Klick bar bezahlt den ganzen Betrag")`.
-- Neue Fachregel oder Bugfix → zuerst ein Test, der ohne die Änderung fehlschlägt.
-- Stand 09.11.2026: **62 Tests**, alle grün (52 Unit, 10 mit Datenbank).
+- Neue Fachregel oder Bugfix → zuerst ein Test, der ohne die Änderung fehlschlägt. Bei Bugfixes nennt der Test die Defekt-Nummer (`D-03`).
+- Stand 23.11.2026: **156 Tests**, alle grün (112 Unit, 31 mit Datenbank, 13 Akzeptanztests im Browser).
 
 ## 9. Durchsetzung: so werden die Regeln eingehalten
 
@@ -129,7 +130,7 @@ Weitere Ordner: `prisma/` Datenmodell, Demo-Daten, Strafenkatalog und Datenbank-
 | --- | --- |
 | Beim Speichern in VS Code | Prettier formatiert, ESLint repariert, was automatisch geht (`.vscode/settings.json`) |
 | Vor jedem Commit (lokal) | `npm run check` = Lint + Formatierung + Typen + Tests. Muss grün sein. |
-| Bei jedem Push auf `main` und jedem Pull Request | GitHub Actions ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) prüft Lint, Formatierung, Typen, alle 62 Tests mit eigener Test-Datenbank und den Build wie auf Vercel. Ergebnis als grüner Haken bzw. rotes Kreuz am Commit. |
+| Bei jedem Push auf `main` und jedem Pull Request | GitHub Actions ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) prüft Lint, Formatierung, Typen, alle Unit- und Datenbank-Tests mit eigener Test-Datenbank und den Build wie auf Vercel; ein zweiter Job führt die Akzeptanztests im Browser aus. Ergebnis als grüner Haken bzw. rotes Kreuz am Commit. |
 | Im Review | Benennung, Kommentare, Tests und Namensliste prüft die zweite Person (Checkliste unten). |
 
 Befehle:
@@ -166,7 +167,7 @@ Schlecht: `fix`, `update`, `asdf`, `Änderungen`.
 - **`main` ist immer lauffähig.** Von `main` wird die Live-Demo deployt; die CI muss dort grün sein.
 - **Neue Features und größere Änderungen am Code** auf einem eigenen Branch: `feature/<issue>-<kurz>`, z. B. `feature/52-mahngebuehr`; Fehler: `fix/<issue>-<kurz>`.
 - Fertig → **Pull Request** auf `main`, Beschreibung mit „Was / Warum / Wie getestet“ und `Closes #<issue>`.
-- **Review durch eine zweite Person** aus dem Team (bevorzugt QA), bevor gemergt wird. CI muss grün sein.
+- **Review durch eine zweite Person** aus dem Team (bevorzugt QA), bevor gemergt wird. CI muss grün sein. Ablauf, Einstufung der Funde und Ergebnis-Tabelle: [Review-Protokoll](testing/review-protokoll.md). Die Checkliste unten steht automatisch in jeder PR-Beschreibung (`.github/pull_request_template.md`).
 - **Direkt auf `main`** nur für kleine Änderungen ohne Risiko: Doku, Diagramme, Tippfehler, Konfiguration. Auch dann vorher `npm run check`.
 
 Review-Checkliste:

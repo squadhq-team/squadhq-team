@@ -45,11 +45,20 @@ export async function createTeam(userId: string, name: string) {
 }
 
 /** Mit Team-Code beitreten: neue Mitglieder sind Spieler. Das Demo-Team ist nicht beitretbar. */
-export async function joinTeam(userId: string, code: string) {
+export const UNKNOWN_JOIN_CODE = "Diesen Team-Code gibt es nicht. Bitte beim Trainer nachfragen.";
+
+/** Team zu einem Team-Code (Schreibweise egal); null, wenn es ihn nicht gibt. Das Demo-Team kann niemand betreten. */
+export async function findTeamByJoinCode(code: string) {
   const joinCode = normalizeJoinCode(code);
-  if (!joinCode) throw new Error("Bitte den Team-Code eingeben.");
+  if (!joinCode) return null;
   const team = await prisma.team.findUnique({ where: { joinCode } });
-  if (!team || team.isDemo) throw new Error("Diesen Team-Code gibt es nicht. Bitte beim Trainer nachfragen.");
+  return team && !team.isDemo ? team : null;
+}
+
+export async function joinTeam(userId: string, code: string) {
+  if (!normalizeJoinCode(code)) throw new Error("Bitte den Team-Code eingeben.");
+  const team = await findTeamByJoinCode(code);
+  if (!team) throw new Error(UNKNOWN_JOIN_CODE);
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
   if (user.teamId === team.id) return team;
   if (user.teamId) throw new Error("Du bist schon in einem Team. Tritt zuerst aus.");

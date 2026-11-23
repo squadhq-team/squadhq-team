@@ -193,3 +193,22 @@ export function participationRate(statuses: (AttendanceStatus | null)[]): {
     adjustedRate: adjustedTotal > 0 ? attended / adjustedTotal : null,
   };
 }
+
+/**
+ * Defekt D-04: Reihenfolge des Strafenkatalogs wie auf dem gedruckten TSVK-Katalog (3, 4, 5A, 5B, 6 … 13A, 13B, 13C).
+ * Unterpositionen haben keine eigene Positionsnummer (position = null), ihre Nummer steht vorn im Titel („5A …“).
+ * Aktive Regeln zuerst; Regeln ganz ohne Nummer (z. B. Zahlungsverzug) stehen am Ende.
+ */
+export function catalogSortKey(rule: { position: number | null; title: string }): [number, string] {
+  if (rule.position !== null) return [rule.position, ""];
+  const match = /^(\d+)\s*([A-Za-z]?)\b/.exec(rule.title.trim());
+  return match ? [Number(match[1]), match[2].toUpperCase()] : [Number.MAX_SAFE_INTEGER, rule.title];
+}
+
+export function sortCatalog<T extends { position: number | null; title: string; active: boolean }>(rules: T[]): T[] {
+  return [...rules].sort((a, b) => {
+    const [numA, restA] = catalogSortKey(a);
+    const [numB, restB] = catalogSortKey(b);
+    return Number(b.active) - Number(a.active) || numA - numB || restA.localeCompare(restB, "de");
+  });
+}

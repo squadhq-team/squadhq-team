@@ -154,3 +154,7 @@ vite.config.ts.timestamp-*
 
 # Beispiel-Umgebung darf ins Repo
 !.env.example
+
+# Akzeptanztests (Playwright)
+/test-results/
+/playwright-report/

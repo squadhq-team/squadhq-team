@@ -7,7 +7,7 @@
 import type { User } from "@prisma/client";
 import { prisma } from "./db";
 import { createSupabaseServerClient } from "./supabase";
-import { joinTeam } from "@/services/teamService";
+import { UNKNOWN_JOIN_CODE, findTeamByJoinCode, joinTeam } from "@/services/teamService";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -91,6 +91,10 @@ export async function registerUser(
 
   const email = input.email.trim().toLowerCase();
   if (await prisma.user.findUnique({ where: { email } })) throw new Error("Mit dieser E-Mail gibt es schon ein Konto.");
+  // Defekt D-03: Ein falscher Team-Code wurde früher still ignoriert (Konto ohne Team, kein Hinweis).
+  // Jetzt wird er vor dem Anlegen des Kontos geprüft, damit man ihn korrigieren kann.
+  if (input.joinCode?.trim() && !(await findTeamByJoinCode(input.joinCode)))
+    throw new Error(`${UNKNOWN_JOIN_CODE} Oder das Feld leer lassen und später beitreten.`);
 
   const { data, error: authError } = await supabase.auth.signUp({
     email,
