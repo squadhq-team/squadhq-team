@@ -7,7 +7,15 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db";
 import { parseBerlinDateTime } from "@/lib/format";
-import { changeRole, createTeam, deleteAccount, joinTeam, leaveTeam, listRespondents } from "@/services/teamService";
+import {
+  changeRole,
+  createTeam,
+  deleteAccount,
+  findTeamByJoinCode,
+  joinTeam,
+  leaveTeam,
+  listRespondents,
+} from "@/services/teamService";
 import { getAttendanceList, importCalendar, respond, setByTrainer } from "@/services/attendanceService";
 import { approvePenalty, cancelPenalty, createManualPenalty, getPlayerAccount } from "@/services/penaltyEngine";
 import { addTransaction, applyLateFees, cancelTransaction, createFees, getTeamCash } from "@/services/paymentService";
@@ -285,5 +293,13 @@ describe.skipIf(!run)("Sprint Features & Design (Datenbank)", () => {
       teamId: demo.id,
       deletedAt: null,
     });
+  });
+  it("D-03: Team-Code wird vor der Registrierung geprüft (Schreibweise egal, falscher Code und Demo-Team: null)", async () => {
+    const team = await prisma.team.findUniqueOrThrow({ where: { id: teamId } });
+    expect((await findTeamByJoinCode(` ${team.joinCode.toLowerCase()} `))?.id).toBe(teamId);
+    expect(await findTeamByJoinCode("ZZZZZZZZ")).toBeNull();
+    expect(await findTeamByJoinCode("")).toBeNull();
+    const demo = await prisma.team.findFirst({ where: { isDemo: true } });
+    if (demo) expect(await findTeamByJoinCode(demo.joinCode)).toBeNull();
   });
 });

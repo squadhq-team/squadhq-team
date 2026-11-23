@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { can, requireMember } from "@/lib/auth";
-import { ROLE_HINT, ROLE_LABEL } from "@/lib/format";
+import { ROLE_HINT, ROLE_LABEL, countLabel } from "@/lib/format";
 import { listMembers } from "@/services/teamService";
 import { Avatar, Badge, Card, Field, PageHeader, btn, inputClass } from "@/components/ui";
 import { ActionForm, SubmitButton } from "@/components/SubmitButton";
@@ -39,7 +39,7 @@ export default async function TeamPage() {
     <>
       <PageHeader
         title="Team"
-        subtitle={`${user.team.name} · ${members.length} Mitglieder`}
+        subtitle={`${user.team.name} · ${countLabel(members.length, "Mitglied", "Mitglieder")}`}
         action={
           <Link href="/team/statistik" className={`${btn.small} bg-white ring-1 ring-stone-300`}>
             Statistik

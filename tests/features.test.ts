@@ -21,7 +21,7 @@ import {
   paypalMeUrl,
 } from "@/domain/penalties";
 import { parseIcs } from "@/domain/ics";
-import { parseBerlinDateTime } from "@/lib/format";
+import { countLabel, parseBerlinDateTime } from "@/lib/format";
 
 const DAY = 86_400_000;
 
@@ -192,5 +192,13 @@ describe("Spielplan-Import (iCalendar)", () => {
 
   it("liefert nichts bei einer Datei ohne Termine", () => {
     expect(parseIcs("kein Kalender", parseBerlinDateTime)).toEqual([]);
+  });
+});
+
+describe("Einzahl und Mehrzahl in Anzeigen (Defekt D-02)", () => {
+  it("1 Mitglied, 0 und 3 Mitglieder", () => {
+    expect(countLabel(1, "Mitglied", "Mitglieder")).toBe("1 Mitglied");
+    expect(countLabel(0, "Mitglied", "Mitglieder")).toBe("0 Mitglieder");
+    expect(countLabel(3, "Mitglied", "Mitglieder")).toBe("3 Mitglieder");
   });
 });

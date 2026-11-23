@@ -25,6 +25,9 @@ const weekdayTime = new Intl.DateTimeFormat("de-DE", {
 const dayShort = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", timeZone: "Europe/Berlin" });
 
 export const formatEuro = (cents: number) => euro.format(cents / 100);
+/** Anzahl mit passender Einzahl/Mehrzahl, z. B. „1 Mitglied“, „3 Mitglieder“ (Defekt D-02) */
+export const countLabel = (count: number, singular: string, plural: string) =>
+  `${count} ${count === 1 ? singular : plural}`;
 export const formatDateTime = (d: Date) => dateTime.format(d);
 /** z. B. „Samstag, 14. November“ */
 export const formatDate = (d: Date) => dateOnly.format(d);

@@ -3,7 +3,7 @@
  * siehe docs/anforderungen/strafenkatalog-tsvk-2026-27.md.
  */
 import { describe, expect, it } from "vitest";
-import { suggestRuleForAttendance } from "@/domain/penalties";
+import { sortCatalog, suggestRuleForAttendance } from "@/domain/penalties";
 import { STRAFENKATALOG } from "../prisma/strafenkatalog";
 
 const rules = STRAFENKATALOG.map((r, i) => ({
@@ -65,5 +65,23 @@ describe("Strafenkatalog TSVK 2026/27 (REQ-PEN-01)", () => {
 
   it("#52: genau eine Regel für die automatische Mahngebühr", () => {
     expect(rules.filter((r) => r.trigger === "LATE_FEE")).toHaveLength(1);
+  });
+});
+
+describe("Reihenfolge des Strafenkatalogs (Defekt D-04)", () => {
+  // Eingabe: Katalog so, wie er aus der Datenbank kommt (Unterpositionen ohne Positionsnummer), absichtlich gemischt
+  const ausDb = [...STRAFENKATALOG].reverse().map((r) => ({ ...r, active: r.active ?? true }));
+  const titel = sortCatalog(ausDb).map((r) => (r.position ? `${r.position}` : r.title.split(" ")[0]));
+
+  it("Unterpositionen 5A/5B stehen zwischen 4 und 6, 13A–13C nach 12 (wie auf dem gedruckten Katalog)", () => {
+    expect(titel.slice(0, 12)).toEqual(["3", "4", "5A", "5B", "6", "7", "8", "9", "10", "11", "12", "13A"]);
+    expect(titel.indexOf("13C")).toBe(titel.indexOf("13B") + 1);
+  });
+
+  it("Regeln ohne Nummer (Zahlungsverzug) stehen hinter den nummerierten, inaktive ganz am Ende", () => {
+    const sortiert = sortCatalog(ausDb);
+    const verzug = sortiert.findIndex((r) => r.trigger === "LATE_FEE");
+    expect(verzug).toBe(sortiert.filter((r) => r.active).length - 1);
+    expect(sortiert.at(-1)?.active).toBe(false);
   });
 });

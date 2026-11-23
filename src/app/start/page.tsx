@@ -51,7 +51,9 @@ export default async function StartPage() {
           href="/kasse?ansicht=freigabe"
           className="block rounded-2xl bg-amber-100 p-4 text-amber-900 ring-1 ring-amber-200"
         >
-          <p className="display text-lg">{pending.length} Strafvorschläge warten auf dich</p>
+          <p className="display text-lg">
+            {pending.length === 1 ? "1 Strafvorschlag wartet" : `${pending.length} Strafvorschläge warten`} auf dich
+          </p>
           <p className="text-sm">Freigeben oder verwerfen, erst dann zählen sie in der Kasse.</p>
         </Link>
       )}
