@@ -84,9 +84,15 @@ Besonders wichtig war D-03. Beim Nutzertest treten alle Spieler per Team-Code be
 
 ## Folie 9 Kundenfeedback und Ausblick auf P6
 
-Zum Feedback: Nach P4 hatten Sie uns geraten, zuerst den bekannten Fehler zu beheben und erst dann neue Features einzubauen. Genau so haben wir es gemacht: D-01 war am 12. November behoben, danach kamen die Features. Seitdem bekommt jeder Defekt ein Issue und einen Regressionstest.
+Links sehen Sie zusammengefasst, welches Feedback wir seit der letzten Präsentation bekommen haben und was wir daraus umgesetzt haben.
 
-In unserer Feedback-Runde nach P3 haben Spieler, Trainer und Kassenwart des Vereins die Live-App gesehen. Sie fanden sie gut und übersichtlich und hatten keine konkreten Änderungswünsche. Deshalb bleibt der Kernablauf, und messbare Ergebnisse holen wir uns im Nutzertest.
+Erstens: Nach P4 kam der Hinweis, zuerst den bekannten Fehler zu beheben und erst dann neue Features einzubauen. Genau so haben wir es gemacht. D-01 war am 12. November behoben, danach kamen die Features. Seitdem bekommt jeder Defekt ein Issue und einen Regressionstest.
+
+Zweitens: Auf dem Handy waren einige Spalten nicht sichtbar oder haben sich überlappt. Da die Spieler die App fast nur auf dem Handy nutzen, haben wir das Design für alle Seiten überarbeitet. Unsere Akzeptanztests laufen deshalb auch in Handy-Größe.
+
+Drittens: Spieler sollen sehen können, woran sie arbeiten müssen. Dafür gibt es jetzt die Leistungsbewertung: Der Trainer vergibt nach dem Training Sterne und eine Notiz, und jeder Spieler sieht nur seine eigene Bewertung.
+
+Und viertens die Rückmeldung aus dem Verein: Die App ist übersichtlich, der Trainer sieht, wer mit welchem Grund absagt, und das Verbuchen der Zahlungen hilft dem Kassenwart. Den Kernablauf lassen wir deshalb so, und messbare Ergebnisse holen wir uns im Nutzertest.
 
 Rechts der Ausblick: Am 2. Dezember testen reale Personen vom TSV Kronshagen die App, ein Trainer, ein Kassenwart und mindestens drei Spieler, jeweils auf dem eigenen Handy. Sie lösen Aufgaben mit Zeitmessung und füllen den SUS-Fragebogen aus. Das Material dafür ist fertig. In P6 am 9. Dezember stellen wir Erfolgsquote, Bearbeitungszeiten, den SUS-Wert und unsere Konsequenzen daraus vor, und am 16. Dezember folgen P7 und die Abgabe.
 
