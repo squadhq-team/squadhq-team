@@ -44,4 +44,4 @@ Eine Zeile je Review oder Inspektion. Funde mit Stufe A bekommen eine Defekt-Num
 
 | Datum | Was wurde geprüft | Autor/in | Reviewer/in | Funde (A / B / C) | Ergebnis | Link |
 |---|---|---|---|---|---|---|
-| 23.11.2026 | PR #70: Akzeptanztests, Testfallkatalog, Review-Protokoll, Behebung D-02 bis D-04 | Kirill Korsun | Ömer-Faruk Simsek (QA) | 0 / 0 / 0 | freigegeben. Code, Tests und Doku gemeinsam am Bildschirm gelesen, Checkliste besprochen, CI grün. Kein Review-Eintrag auf GitHub; Ergebnis eingetragen von Kirill Korsun | [#70](https://github.com/squadhq-team/squadhq-team/pull/70) |
+| 23.11.2026 | PR #70: Akzeptanztests, Testfallkatalog, Review-Protokoll, Behebung D-02 bis D-04 | Kirill Korsun (PR geöffnet) | Ömer-Faruk Simsek (QA) | 0 / 0 / 0 | freigegeben. Code, Tests und Doku gemeinsam am Bildschirm gelesen, Checkliste besprochen, CI grün. Kein Review-Eintrag auf GitHub; Ergebnis eingetragen von Kirill Korsun | [#70](https://github.com/squadhq-team/squadhq-team/pull/70) |
