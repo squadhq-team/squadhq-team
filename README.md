@@ -29,7 +29,7 @@ Die Testkonten hat das Team einmalig auf der Live-Datenbank angelegt (`prisma/te
 | Kirill Korsun | Management |
 
 ## Tech-Stack
-Next.js 15 (TypeScript, App Router, Server Actions), Tailwind CSS, Prisma, PostgreSQL (Supabase), Supabase Auth, Vitest, Deployment auf Vercel
+Next.js 15 (TypeScript, App Router, Server Actions), Tailwind CSS, Prisma, PostgreSQL (Supabase), Supabase Auth, Vitest, Playwright, Deployment auf Vercel
 
 ## App starten
 
@@ -69,6 +69,7 @@ npm run build && npm start   # Produktionsversion bauen und starten
 npm test                     # Unit-Tests
 npm run check                # Lint, Formatierung, Typen und Tests (vor jedem Commit, wie in der CI)
 RUN_DB_TESTS=1 npm test      # zusätzlich Ablauftests gegen die Datenbank (nur Test-DB, nicht Live)
+npm run test:e2e             # Akzeptanztests im Browser (Playwright, eigene lokale Test-DB squadhq_e2e, nie Live)
 ```
 Details zu Supabase, Vercel, Mailversand und Push-Benachrichtigungen: [docs/setup.md](docs/setup.md). Regeln für Code, Commits und Reviews: [docs/coding-guidelines.md](docs/coding-guidelines.md). Ablauf für die Präsentation: [docs/demo-ablauf.md](docs/demo-ablauf.md).
 
@@ -81,7 +82,7 @@ Fünf Schichten, gleiche Namen wie im [Komponentendiagramm](docs/architektur/kom
 - `src/components` – UI-Bausteine, u. a. Buttons mit Lade- und Gespeichert-Anzeige
 - `src/lib` – außerdem Datenbank-Client (Prisma), Supabase und Formatierung
 - `prisma` – Datenmodell, Demo-Daten und Testkonten
-- `tests` – Vitest-Tests
+- `tests` – Vitest-Tests (Unit und Datenbank), `tests/e2e` – Akzeptanztests im Browser (Playwright)
 
 ## MVPs
 1. Terminplanung & 1-Klick-Zusage (Dabei, Fehle, Unsicher)
@@ -100,7 +101,7 @@ Details und Gesamtumfang: [docs/anforderungen/features-und-mvps.md](docs/anforde
 - `docs/interviews` – Interviews und Feedback-Matrix
 - `docs/architektur` – Komponenten, Sequenz, Klassendiagramm, ER-Modell, Architekturbegründung
 - `docs/traceability.md` – Feedback → Anforderung → Code → Test
-- `docs/testing` – Akzeptanzkriterien, Teststrategie und Nutzertest (Leitfaden, Testaufgaben mit Zeitmessung, SUS-Fragebogen, druckfertige Bögen)
+- `docs/testing` – Akzeptanzkriterien, Teststrategie, Testfallkatalog, Review-Protokoll und Nutzertest (Leitfaden, Testaufgaben mit Zeitmessung, SUS-Fragebogen, druckfertige Bögen)
 - `docs/coding-guidelines.md` – Coding-Standards, Commit- und Review-Regeln (automatisch geprüft per GitHub Actions)
 - `docs/team.md` – Rollen und Arbeitsweise
 
