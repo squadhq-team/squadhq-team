@@ -1,5 +1,6 @@
 # Automatische Prüfung bei jedem Push auf main und bei jedem Pull Request.
-# Läuft dasselbe wie lokal `npm run check`, zusätzlich mit Datenbank-Tests und Build.
+# Läuft dasselbe wie lokal `npm run check`, zusätzlich mit Datenbank-Tests und Build,
+# und in einem zweiten Schritt die Akzeptanztests im Browser (npm run test:e2e).
 # Regeln und Begründung: docs/coding-guidelines.md
 name: CI
 
@@ -62,3 +63,54 @@ jobs:
 
       - name: Build (wie auf Vercel)
         run: npm run build
+
+  akzeptanz:
+    name: Akzeptanztests im Browser (Playwright)
+    runs-on: ubuntu-latest
+    # Eigene, leere Datenbank nur für diesen Lauf; Anmeldung über die Supabase-Attrappe (tests/e2e/supabaseAttrappe.ts)
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: squadhq_e2e
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      E2E_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/squadhq_e2e
+      # nur für den Build, die laufende App bekommt die Werte aus playwright.config.ts
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/squadhq_e2e
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/squadhq_e2e
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Browser für Playwright installieren
+        run: npx playwright install --with-deps chromium
+
+      - name: Akzeptanztests AT-01 bis AT-13
+        run: npm run test:e2e
+
+      - name: Bericht bei Fehlern aufheben
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-bericht
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
